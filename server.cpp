@@ -54,6 +54,7 @@ class Client
     ~Client(){}            // Virtual destructor defined for base class
 };
 
+// A class Server to represent all connected servers
 class Server
 {
     public:
@@ -62,7 +63,7 @@ class Server
     int port;
 
     Server(const std::string& _groupID, const std::string& _ip, int _port)
-        : groupID(_groupID), ip(_ip), port(_port) {}
+        : groupID(_groupID),ip(_ip),port(_port) {}
 };
 // Note: map is not necessarily the most efficient method to use here,
 // especially for a server with large numbers of simulataneous connections,
@@ -194,6 +195,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
 
+
     // Here send QUERYSERVER
     std::string message = "QUERYSERVERS," + groupID;
     if(send(serverSock, message.c_str(), message.length(), 0) < 0)
@@ -224,8 +226,27 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     {
         std::cout << "Received response after QUERYSERVERS: " << responseBuffer << std::endl;
     }
+    
+    // Now the response should be QUERYSERVERS,GROUP_ID and we want to extract the group id 
+    
+    std::string receivedResponse = responseBuffer;   // Convert char array to string
+    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+
+    // Then add the server to connected servers
+    Server newServer(receivedGroupID, ip_address, port); // X should be replaced with the actual group number
+    connectedServers.push_back(newServer);
+
+
+    std::cout << "Server list" << std::endl;
+    for(const auto& server : connectedServers)
+    {
+        std::cout << server << std::endl;
+    }
+
 
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
+
 
     return serverSock;
 }
