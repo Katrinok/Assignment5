@@ -91,6 +91,18 @@ std::ostream& operator<<(std::ostream& os, const Server& server)
 std::map<int, Client*> clients; // Lookup table for per Client information
 std::vector<Server> connectedServers; // A global list of servers
 
+// Get the response for QUERYSERVERS
+std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
+{
+    std::string response = "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
+
+    for(const auto& server : connectedServers) {
+        response += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
+    }
+
+    return response;
+}
+
 // Open socket for specified port.
 //
 // Returns -1 if unable to create the socket for any reason.
@@ -234,32 +246,34 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     Server newServer(receivedGroupID, ip_address, port);
     connectedServers.push_back(newServer);
 
-    std::cout << "Server list" << std::endl; //DEBUG
-    for(const auto& server : connectedServers) {
-        std::cout << server << std::endl;
-    }
-
-
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
     std::string queryservers = QueryserversResponse(groupID, myServer); 
 
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
-    std::cout << "SERVERS sent" << queryservers << std::endl; //DEBUG
+    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
 
-    return serverSock;
-}
+    // Get the response, the servers that the other server is connected to
+    char responseBuffer2[2048]; // Buffer to hold the response
+    memset(responseBuffer2, 0, sizeof(responseBuffer2)); // Clear the buffer
 
-std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
-{
-    std::string response = "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
-
-    for(const auto& server : connectedServers) {
-        response += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
+    int bytesRead2 = recv(serverSock, responseBuffer2, sizeof(responseBuffer2)-1, 0); // Receive the data
+    if(bytesRead2 < 0) {
+        perror("Error receiving response from server");
+        close(serverSock);
+        return -1;
+    }
+    else if(bytesRead2 == 0) {
+        std::cout << "Server closed connection after sending SERVERS" << std::endl;
+        close(serverSock);
+        return -1;
+    }
+    else {
+        std::cout << "Received response after SERVERS: " << responseBuffer2 << std::endl;
     }
 
-    return response;
+    return serverSock;
 }
 
 
