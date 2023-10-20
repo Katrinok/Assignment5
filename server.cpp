@@ -248,7 +248,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
     std::string queryservers = QueryserversResponse(groupID, myServer); 
-
+    queryservers = "0x02" + queryservers + "0x08"; // Add STX and ETX breyta seinna
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
