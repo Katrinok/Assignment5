@@ -228,15 +228,15 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         std::cout << "Received response after connection: " << responseBuffer << std::endl;
     }
 
+    std::string receivedResponse = responseBuffer;   // Convert char array to string
+    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+
+    Server newServer(receivedGroupID, ip_address, port);
+    connectedServers.push_back(newServer);
     // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
     std::cout << "Ég er hér " << std::endl;
 
-
-
-
-
-
-    /*
 
     // Here send QUERYSERVER
     std::string message = "QUERYSERVERS," + groupID;
@@ -244,6 +244,8 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error sending QUERYSERVERS message");
     }
     std::cout << "QUERYSERVERS sent: " << message << std::endl;
+
+    std::cout << "Ég er hér NÚNA" << std::endl;
 
     // Now get the response from the other server
     // Wait for a response from the server after sending the message
@@ -264,16 +266,15 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     else {
         std::cout << "Received response after QUERYSERVERS: " << responseBuffer << std::endl;
     }
+
+    std::cout << "gERIST EITTHVAÐ !!" << std::endl;
     
     // Now the response should be QUERYSERVERS,GROUP_ID and we want to extract the group id 
     
-    std::string receivedResponse = responseBuffer;   // Convert char array to string
-    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
-    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+    
 
     // Then add the server to connected servers
-    Server newServer(receivedGroupID, ip_address, port);
-    connectedServers.push_back(newServer);
+    
 
 
 
@@ -305,7 +306,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     else {
         std::cout << "Received response after SERVERS: " << responseBuffer2 << std::endl;
     }
-    */
+    
     return serverSock;
 }
 
