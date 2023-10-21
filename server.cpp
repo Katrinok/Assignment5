@@ -93,12 +93,14 @@ std::vector<Server> connectedServers; // A global list of servers
 
 // Get the response for QUERYSERVERS
 std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
-{
-    std::string response = "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
+{   const char STX = 0x02;  // Start of Text
+    const char ETX = 0x03;  // End of Text
+    std::string response = "SERVERS," + STX + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
 
     for(const auto& server : connectedServers) {
         response += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
     }
+    response += ETX;
 
     return response;
 }
@@ -214,7 +216,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
         perror("Error sending QUERYSERVERS message");
     }
-    std::cout << "QUERYSERVERS sent" << message << std::endl;
+    std::cout << "QUERYSERVERS sent: " << message << std::endl;
 
     // Now get the response from the other server
     // Wait for a response from the server after sending the message
@@ -246,9 +248,12 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     Server newServer(receivedGroupID, ip_address, port);
     connectedServers.push_back(newServer);
 
+
+
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
     std::string queryservers = QueryserversResponse(groupID, myServer); 
-    queryservers = "0x02" + queryservers + "0x08"; // Add STX and ETX breyta seinna
+
+    // Add STX and ETX breyta seinna
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
@@ -354,8 +359,7 @@ int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
     std::string groupID = "P3_GROUP_20";
-    const char STX = 0x02;  // Start of Text
-    const char ETX = 0x03;  // End of Text
+
 
     myServer myServer("130.208.243.61", this_port); // endanum verður ip address input arg
 
