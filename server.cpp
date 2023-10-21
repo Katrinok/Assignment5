@@ -237,6 +237,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     std::string STX = "0x02";  // Start of Text string representation
     std::string ETX = "0x08";  // End of Text string representation (assuming you indeed meant 0x08)
+    
     // Here send QUERYSERVER
     std::string message = STX + "QUERYSERVERS," + groupID + ETX;
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
