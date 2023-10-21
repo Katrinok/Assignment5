@@ -93,8 +93,8 @@ std::vector<Server> connectedServers; // A global list of servers
 
 // Get the response for QUERYSERVERS
 std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
-{   const char STX = 0x02;  // Start of Text
-    const char ETX = 0x03;  // End of Text
+{   char STX = 0x02;  // Start of Text
+    char ETX = 0x03;  // End of Text
     std::string response = std::string(1, STX) + "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
 
     for(const auto& server : connectedServers) {
@@ -210,6 +210,35 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
 
 
+    char responseBuffer[1025]; // Buffer to hold the response
+    memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
+
+    int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
+    if(bytesRead < 0) {
+        perror("Error receiving response from server");
+        close(serverSock);
+        return -1;
+    }
+    else if(bytesRead == 0) {
+        std::cout << "Server closed connection after sending QUERYSERVERS" << std::endl;
+        close(serverSock);
+        return -1;
+    }
+    else {
+        std::cout << "Received response after connection: " << responseBuffer << std::endl;
+    }
+
+    // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
+    std::cout << "Ég er hér " << std::endl;
+
+
+
+
+
+
+
+
+
     // Here send QUERYSERVER
     std::string message = "QUERYSERVERS," + groupID;
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
@@ -257,6 +286,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error sending SERVERS message");
     }
     std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
+
 
     // Get the response, the servers that the other server is connected to
     char responseBuffer2[2048]; // Buffer to hold the response
