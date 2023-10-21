@@ -269,14 +269,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     std::cout << "gERIST EITTHVAÐ !!" << std::endl;
     
-    // Now the response should be QUERYSERVERS,GROUP_ID and we want to extract the group id 
-    
-    
-
-    // Then add the server to connected servers
-    
-
-
 
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
     std::string queryservers = QueryserversResponse(groupID, myServer); 
