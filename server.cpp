@@ -95,13 +95,12 @@ std::vector<Server> connectedServers; // A global list of servers
 std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
 {   const char STX = 0x02;  // Start of Text
     const char ETX = 0x03;  // End of Text
-    std::string response = "SERVERS," + STX + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
+    std::string response = STX + "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
 
     for(const auto& server : connectedServers) {
         response += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
     }
     response += ETX;
-
     return response;
 }
 
