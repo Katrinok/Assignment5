@@ -249,22 +249,23 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     // Now get the response from the other server
     // Wait for a response from the server after sending the message
-    char responseBuffer[1025]; // Buffer to hold the response
-    memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
+    // gæti tekið út þetta
+    char responseBufferNY[1025]; // Buffer to hold the response
+    memset(responseBufferNY, 0, sizeof(responseBufferNY)); // Clear the buffer
 
-    int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
-    if(bytesRead < 0) {
+    int bytesRead2 = recv(serverSock, responseBufferNY, sizeof(responseBuffer)-1, 0); // Receive the data
+    if(bytesRead2 < 0) {
         perror("Error receiving response from server");
         close(serverSock);
         return -1;
     }
-    else if(bytesRead == 0) {
+    else if(bytesRead2 == 0) {
         std::cout << "Server closed connection after sending QUERYSERVERS" << std::endl;
         close(serverSock);
         return -1;
     }
     else {
-        std::cout << "Received response after QUERYSERVERS: " << responseBuffer << std::endl;
+        std::cout << "Received response after sending QUERYSERVERS: " << responseBufferNY << std::endl;
     }
 
     std::cout << "gERIST EITTHVAÐ !!" << std::endl;
