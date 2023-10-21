@@ -236,8 +236,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
 
 
-
-
+    /*
 
     // Here send QUERYSERVER
     std::string message = "QUERYSERVERS," + groupID;
@@ -306,7 +305,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     else {
         std::cout << "Received response after SERVERS: " << responseBuffer2 << std::endl;
     }
-
+    */
     return serverSock;
 }
 
