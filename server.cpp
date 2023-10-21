@@ -237,7 +237,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
 
     // Here send QUERYSERVER
-    std::string message = "QUERYSERVERS," + groupID;
+    std::string message = "0x02" + "QUERYSERVERS," + groupID + "0x08";
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
         perror("Error sending QUERYSERVERS message");
     }
