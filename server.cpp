@@ -324,6 +324,15 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     
 
     }
+    else if (tokens[0].compare("LISTSERVERS") == 0) {
+        std::cout << "List servers" << std::endl;
+        std::string msg;
+        for(auto const& server : connectedServers) {
+            msg += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
+        }
+        send(clientSocket, msg.c_str(), msg.length(),0);
+    }
+    
     // This is slightly fragile, since it's relying on the order
     // of evaluation of the if statement.
     else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0)) { // senda á hvert og eitt socket þetta message
