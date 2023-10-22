@@ -331,6 +331,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
             msg += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
         }
         send(clientSocket, msg.c_str(), msg.length(),0);
+        std::cout << "Message sent was" << msg << std::endl;
     }
     
     // This is slightly fragile, since it's relying on the order
