@@ -235,11 +235,11 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
     std::cout << "Ég er hér " << std::endl;
 
-    std::string STX = "0x02";  // Start of Text string representation
-    std::string ETX = "0x08";  // End of Text string representation (assuming you indeed meant 0x08)
-    
+    char STX = 0x02;  // Start of Text (ASCII representation)
+    char ETX = 0x03;  // End of Text (ASCII representation)
+
     // Here send QUERYSERVER
-    std::string message = STX + "QUERYSERVERS," + groupID + ETX;
+    std::string message = std::string(1, STX) + "QUERYSERVERS," + groupID + std::string(1, ETX);
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
         perror("Error sending QUERYSERVERS message");
     }
@@ -249,7 +249,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
     std::string queryservers = QueryserversResponse(groupID, myServer); 
-    queryservers = "0x02" + queryservers + "0x08";
+    queryservers = STX + queryservers + ETX;
     // Add STX and ETX breyta seinna
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
