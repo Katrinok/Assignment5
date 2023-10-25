@@ -211,6 +211,13 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     } 
 
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
+    std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
+
+    if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
+        perror("Error sending QUERYSERVERS message");
+    }
+    std::cout << "QUERYSERVERS sent: " << message << std::endl;
+    
     return serverSock;
 }
 
@@ -243,16 +250,6 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
-        // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
-
-        // Here send QUERYSERVER
-        std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
-        if(send(socket, message.c_str(), message.length(), 0) < 0) {
-            perror("Error sending QUERYSERVERS message");
-        }
-        std::cout << "QUERYSERVERS sent: " << message << std::endl;
-
-
     }
     else if(tokens[0].compare("LEAVE") == 0) {
         // Close the socket, and leave the socket handling
@@ -319,7 +316,8 @@ int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
     std::string groupID = "P3_GROUP_20";
-
+    const char STX = 0x02;  // Start of command
+    const char ETX = 0x03;  // End of command
 
     myServer myServer("130.208.243.61", this_port); // endanum verður ip address input arg
 
@@ -407,6 +405,8 @@ int main(int argc, char* argv[]) {
                         else {
                             std::cout << buffer << std::endl; // Skoða hér og aðskilja á STX og ETX hér er hægt að skoða mun a server og client
                             // Check if the command has STX and ETX, if so send to a server command function
+                            size_t start_pos = buffer.find(STX);
+                            size_t end_pos = buffer.find(ETX);
                             //if()
                             clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
                         }
