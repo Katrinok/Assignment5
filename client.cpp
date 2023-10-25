@@ -122,6 +122,12 @@ int main(int argc, char* argv[])
             perror("Connect failed: ");
             exit(0);
         }
+        else
+        {
+            // Send identifier to server immediately after connecting
+            std::string clientIdentifier = "IDENTIFY KATRIN";
+            send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
+        }
     }
 
     // Listen and print replies from server

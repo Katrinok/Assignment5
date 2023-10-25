@@ -43,6 +43,7 @@
 struct myServer {
     std::string ip_address;
     int port;
+    int sock;
 
 
     // Constructor
@@ -54,7 +55,8 @@ struct myServer {
 // Client(int socket) - socket to send/receive traffic from client.
 class Client {
     public:
-    int sock;              // socket of client connection
+    int sock;
+    bool isMyClient = false;              // socket of client connection
     std::string name;           // Limit length of name of client's user
 
     Client(int socket) : sock(socket){} 
@@ -68,8 +70,9 @@ class Server {
     std::string groupID;
     std::string ip_address;
     int port;
+    int sock;
 
-    Server(const std::string& _groupID, const std::string& _ip, int _port)
+    Server(const std::string& _groupID, const std::string& _ip, int _port, int sock)
         : groupID(_groupID),ip_address(_ip),port(_port) {}
 
     friend std::ostream& operator<<(std::ostream& os, const Server& server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
@@ -178,7 +181,13 @@ void closeClient(int clientSocket, fd_set *openSockets, int *maxfds) {
 
 }
 
-// Process command from client on the server
+
+// 
+std::string wrapWithSTXETX(const std::string& payload) {
+    char STX = 0x02;  // Start of Text (ASCII representation)
+    char ETX = 0x03;  // End of Text (ASCII representation)
+    return std::string(1, STX) + payload + std::string(1, ETX);
+}
 
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
@@ -203,10 +212,9 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     if(connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
         perror("Error connecting to server");
         return -1;
-    }
+    } 
 
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
-
 
     char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
@@ -226,56 +234,22 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         std::cout << "Received response after connection: " << responseBuffer << std::endl;
     }
 
+
     std::string receivedResponse = responseBuffer;   // Convert char array to string
     size_t startPos = receivedResponse.find(",");    // Find position of the first comma
     std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
-
-    Server newServer(receivedGroupID, ip_address, port);
+    Server newServer(receivedGroupID, ip_address, port, serverSock);
     connectedServers.push_back(newServer);
-    // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
-    std::cout << "Ég er hér " << std::endl;
 
-    char STX = 0x02;  // Start of Text (ASCII representation)
-    char ETX = 0x03;  // End of Text (ASCII representation)
+    // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
 
     // Here send QUERYSERVER
-    std::string message = std::string(1, STX) + "QUERYSERVERS," + groupID + std::string(1, ETX);
+    std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
+
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
         perror("Error sending QUERYSERVERS message");
     }
     std::cout << "QUERYSERVERS sent: " << message << std::endl;
-
-    std::cout << "Ég er hér NÚNA" << std::endl;
-
-    // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
-    std::string queryservers = QueryserversResponse(groupID, myServer); 
-    queryservers = STX + queryservers + ETX;
-    // Add STX and ETX breyta seinna
-    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
-        perror("Error sending SERVERS message");
-    }
-    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
-
-
-    // Get the response, the servers that the other server is connected to
-    char responseBuffer2[2048]; // Buffer to hold the response
-    memset(responseBuffer2, 0, sizeof(responseBuffer2)); // Clear the buffer
-
-    int bytesRead2 = recv(serverSock, responseBuffer2, sizeof(responseBuffer2)-1, 0); // Receive the data
-    if(bytesRead2 < 0) {
-        perror("Error receiving response from server");
-        close(serverSock);
-        return -1;
-    }
-    else if(bytesRead2 == 0) {
-        std::cout << "Server closed connection after sending SERVERS" << std::endl;
-        close(serverSock);
-        return -1;
-    }
-    else {
-        std::cout << "Received response after SERVERS: " << responseBuffer2 << std::endl;
-    }
-    
     return serverSock;
 }
 
@@ -302,7 +276,9 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
-        connectToServer(ip_address, port, groupID, Server);
+        int socket =  connectToServer(ip_address, port, groupID, Server);
+
+
     }
     else if(tokens[0].compare("LEAVE") == 0) {
         // Close the socket, and leave the socket handling
@@ -319,6 +295,14 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
             msg += names.second->name + ",";
 
         }
+
+    // þetta er fyrir okkur að þekkja okkar client
+    if(tokens[0].compare("IDENTIFY") == 0 && tokens.size() == 2) {
+        if(tokens[1] == "KATRIN") {
+            clients[clientSocket]->isMyClient = true;
+            std::cout << "My client identified!" << std::endl;
+        }
+    }
     // Reducing the msg length by 1 loses the excess "," - which
     // granted is totally cheating.
     

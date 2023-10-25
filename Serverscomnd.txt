@@ -1,0 +1,32 @@
+//std::cout << "Ég er hér NÚNA" << std::endl;
+
+    // Now respond with a string on the format QUERYSERVERS,FROM_GROUP_ID,FROM_IP_ADDRESS,FROM_PORT,<connected servers group id, ip, and port>
+    std::string queryservers = QueryserversResponse(groupID, myServer); 
+    // Add STX and ETX
+    queryservers = wrapWithSTXETX(queryservers);
+
+    
+    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
+        perror("Error sending SERVERS message");
+    }
+    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
+
+
+    // Get the response, the servers that the other server is connected to
+    char responseBuffer2[2048]; // Buffer to hold the response
+    memset(responseBuffer2, 0, sizeof(responseBuffer2)); // Clear the buffer
+
+    int bytesRead2 = recv(serverSock, responseBuffer2, sizeof(responseBuffer2)-1, 0); // Receive the data
+    if(bytesRead2 < 0) {
+        perror("Error receiving response from server");
+        close(serverSock);
+        return -1;
+    }
+    else if(bytesRead2 == 0) {
+        std::cout << "Server closed connection after sending SERVERS" << std::endl;
+        close(serverSock);
+        return -1;
+    }
+    else {
+        std::cout << "Received response after SERVERS: " << responseBuffer2 << std::endl;
+    }
