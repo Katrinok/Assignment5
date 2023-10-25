@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
             // Send identifier to server immediately after connecting
             std::string clientIdentifier = "IDENTIFY KATRIN";
             send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
+            std::cout << "Client identifier sent to server: " << clientIdentifier << std::endl;
         }
     }
 
