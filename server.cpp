@@ -105,7 +105,6 @@ std::string QueryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
-
 // Wraps the function
 std::string wrapWithSTXETX(const std::string& payload) {
     char STX = 0x02;  // Start of Text (ASCII representation)
@@ -114,7 +113,6 @@ std::string wrapWithSTXETX(const std::string& payload) {
 }
 
 // Open socket for specified port.
-//
 // Returns -1 if unable to create the socket for any reason.
 
 int open_socket(int portno) {
@@ -193,7 +191,6 @@ void closeClient(int clientSocket, fd_set *openSockets, int *maxfds) {
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
     int serverSock;
     struct sockaddr_in serverAddr;
-
     serverSock = socket(AF_INET, SOCK_STREAM, 0);
     if(serverSock < 0) {
         perror("Error opening socket");
@@ -203,7 +200,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
-
     if(inet_pton(AF_INET, ip_address.c_str(), &serverAddr.sin_addr) <= 0) {
         perror("Error converting IP address");
         return -1;
@@ -215,41 +211,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     } 
 
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
-
-    char responseBuffer[1025]; // Buffer to hold the response
-    memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
-
-    int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
-    if(bytesRead < 0) {
-        perror("Error receiving response from server");
-        close(serverSock);
-        return -1;
-    }
-    else if(bytesRead == 0) {
-        std::cout << "Server closed connection after sending QUERYSERVERS" << std::endl;
-        close(serverSock);
-        return -1;
-    }
-    else {
-        std::cout << "Received response after connection: " << responseBuffer << std::endl;
-    }
-
-
-    std::string receivedResponse = responseBuffer;   // Convert char array to string
-    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
-    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
-    Server newServer(receivedGroupID, ip_address, port, serverSock);
-    connectedServers.push_back(newServer);
-
-    // Now the response should be CONNECTED,<GROUP_ID>,<IP>,<PORT>
-
-    // Here send QUERYSERVER
-    std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
-
-    if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
-        perror("Error sending QUERYSERVERS message");
-    }
-    std::cout << "QUERYSERVERS sent: " << message << std::endl;
     return serverSock;
 }
 
@@ -278,14 +239,16 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, groupID, Server);
-
+        FD_SET(socket, openSockets);
+        
+        // And update the maximum file descriptor
+        *maxfds = std::max(*maxfds, socket);
 
     }
     else if(tokens[0].compare("LEAVE") == 0) {
         // Close the socket, and leave the socket handling
         // code to deal with tidying up clients etc. when
         // select() detects the OS has torn down the connection.
- 
         closeClient(clientSocket, openSockets, maxfds);
     }
 
@@ -322,7 +285,6 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         for(auto i = tokens.begin()+2;i != tokens.end();i++) {
             msg += *i + " ";
         }
-
         for(auto const& pair : clients) {
             send(pair.second->sock, msg.c_str(), msg.length(),0);
         }
@@ -421,27 +383,29 @@ int main(int argc, char* argv[]) {
             // Now check for commands from clients
             std::list<Client *> disconnectedClients;  
             while(n-- > 0) {
-               for(auto const& pair : clients) {
-                  Client *client = pair.second;
+                for(auto const& pair : clients) {
+                    Client *client = pair.second;
 
-                  if(FD_ISSET(client->sock, &readSockets)) {
-                      // recv() == 0 means client has closed connection
-                      if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
-                          disconnectedClients.push_back(client);
-                          closeClient(client->sock, &openSockets, &maxfds);
+                    if(FD_ISSET(client->sock, &readSockets)) {
+                        // recv() == 0 means client has closed connection
+                        if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
+                            disconnectedClients.push_back(client);
+                            closeClient(client->sock, &openSockets, &maxfds);
 
-                      }
-                      // We don't check for -1 (nothing received) because select()
-                      // only triggers if there is something on the socket for us.
-                      else {
-                          std::cout << buffer << std::endl;
-                          clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
-                      }
-                  }
-               }
-               // Remove client from the clients list
-               for(auto const& c : disconnectedClients)
-                  clients.erase(c->sock);
+                        }
+                        // We don't check for -1 (nothing received) because select()
+                        // only triggers if there is something on the socket for us.
+                        else {
+                            std::cout << buffer << std::endl; // Skoða hér og aðskilja á STX og ETX hér er hægt að skoða mun a server og client
+                            // Check if the command has STX and ETX, if so send to a server command function
+                            //if()
+                            clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
+                        }
+                    }
+                }
+                // Remove client from the clients list
+                for(auto const& c : disconnectedClients)
+                    clients.erase(c->sock);
             }
         }
     }
