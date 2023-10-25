@@ -273,6 +273,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2)) { // IP og port spurning um að bua til struct setja inn allar uppl 
         clients[clientSocket]->name = tokens[1]; // name format    
     }
+    
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
