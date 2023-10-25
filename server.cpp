@@ -105,6 +105,14 @@ std::string QueryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
+
+// Wraps the function
+std::string wrapWithSTXETX(const std::string& payload) {
+    char STX = 0x02;  // Start of Text (ASCII representation)
+    char ETX = 0x03;  // End of Text (ASCII representation)
+    return std::string(1, STX) + payload + std::string(1, ETX);
+}
+
 // Open socket for specified port.
 //
 // Returns -1 if unable to create the socket for any reason.
@@ -158,7 +166,6 @@ int open_socket(int portno) {
 
 // Close a client's connection, remove it from the client list, and
 // tidy up select sockets afterwards.
-
 void closeClient(int clientSocket, fd_set *openSockets, int *maxfds) {
 
     printf("Client closed connection: %d\n", clientSocket);
@@ -176,18 +183,11 @@ void closeClient(int clientSocket, fd_set *openSockets, int *maxfds) {
     }
 
     // And remove from the list of open sockets.
-
     FD_CLR(clientSocket, openSockets);
-
 }
 
 
-// 
-std::string wrapWithSTXETX(const std::string& payload) {
-    char STX = 0x02;  // Start of Text (ASCII representation)
-    char ETX = 0x03;  // End of Text (ASCII representation)
-    return std::string(1, STX) + payload + std::string(1, ETX);
-}
+
 
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
