@@ -297,11 +297,10 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         }
 
     // þetta er fyrir okkur að þekkja okkar client
-    if(tokens[0].compare("IDENTIFY") == 0 && tokens.size() == 2) {
-        if(tokens[1] == "KATRIN") {
-            clients[clientSocket]->isMyClient = true;
-            std::cout << "My client identified!" << std::endl;
-        }
+    if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
+        clients[clientSocket]->isMyClient = true;
+        std::cout << "My client identified!" << std::endl;
+        
     }
     // Reducing the msg length by 1 loses the excess "," - which
     // granted is totally cheating.
