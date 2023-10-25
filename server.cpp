@@ -247,12 +247,10 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
         // Here send QUERYSERVER
         std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
-
         if(send(socket, message.c_str(), message.length(), 0) < 0) {
             perror("Error sending QUERYSERVERS message");
         }
         std::cout << "QUERYSERVERS sent: " << message << std::endl;
-
 
 
     }
