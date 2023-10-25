@@ -247,9 +247,10 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, groupID, Server);
         FD_SET(socket, openSockets);
-        
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
+        
+
     }
     else if(tokens[0].compare("LEAVE") == 0) {
         // Close the socket, and leave the socket handling
@@ -267,12 +268,12 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
         }
     }
-    // Secret identifier only for my client
+   /* // Secret identifier only for my client
     else if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
         clients[clientSocket]->isMyClient = true;
         std::cout << "My client identified!" << std::endl;
         
-    }
+    }*/
 
     else if (tokens[0].compare("LISTSERVERS") == 0) {
         std::cout << "List servers" << std::endl;
@@ -311,6 +312,25 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     }
      
 }
+
+void serverCommand(int ServerSocket, fd_set *openSockets, int *maxfds, 
+                  std::string buffer, std::string groupID, myServer Server) {
+    std::vector<std::string> tokens;
+    std::stringstream stream(buffer);
+    std::string token;
+    
+    // Split Server command from client into tokens for parsing
+    
+
+    while(std::getline(stream, token, ',')) {
+        tokens.push_back(token);
+    }
+
+    if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) {    
+        
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     // Messages format
@@ -370,20 +390,31 @@ int main(int argc, char* argv[]) {
         else {
             // First, accept  any new connections to the server on the listening socket
             if(FD_ISSET(listenSock, &readSockets)) {
-               clientSock = accept(listenSock, (struct sockaddr *)&client,
+                clientSock = accept(listenSock, (struct sockaddr *)&client,
                                    &clientLen);
-               printf("accept***\n");
-               // Add new client to the list of open sockets
-               FD_SET(clientSock, &openSockets);
+                printf("accept***\n");
+                // Add new client to the list of open sockets
+                FD_SET(clientSock, &openSockets);
 
-               // And update the maximum file descriptor
-               maxfds = std::max(maxfds, clientSock) ;
-
-               // create a new client to store information.
-               clients[clientSock] = new Client(clientSock);
-
-               // Decrement the number of sockets waiting to be dealt with
-               n--;
+                // And update the maximum file descriptor
+                maxfds = std::max(maxfds, clientSock);
+   
+                // Temporary buffer to read the initial message
+                char tempBuffer[1024] = {0};
+                int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
+                if(bytesRead > 0 && std::string(tempBuffer) == "SECRET_KATRIN") {
+                    // create a new client to store information.
+                    clients[clientSock] = new Client(clientSock);
+                } else {
+                    std::cout << "Received response after connection: " << tempBuffer << std::endl;
+                    std::string receivedResponse = tempBuffer;   // Convert char array to string
+                    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+                    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+                    Server newServer(receivedGroupID, 0, 0, clientSock);
+                    connectedServers.push_back(newServer);
+                }
+                // Decrement the number of sockets waiting to be dealt with
+                n--;
 
                printf("Client connected on server: %d\n", clientSock);
             }
@@ -398,17 +429,26 @@ int main(int argc, char* argv[]) {
                         if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
                             disconnectedClients.push_back(client);
                             closeClient(client->sock, &openSockets, &maxfds);
-
+                            std::cout << "Client closed connection: " << client << std::endl;
                         }
                         // We don't check for -1 (nothing received) because select()
                         // only triggers if there is something on the socket for us.
                         else {
                             std::cout << buffer << std::endl; // Skoða hér og aðskilja á STX og ETX hér er hægt að skoða mun a server og client
                             // Check if the command has STX and ETX, if so send to a server command function
-                            size_t start_pos = buffer.find(STX);
-                            size_t end_pos = buffer.find(ETX);
-                            //if()
-                            clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
+                            char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
+                            char* ETX_ptr = strchr(buffer, ETX);
+
+                                if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
+                                    // STX and ETX fournd, extract the string between STX and ETX
+                                    std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);
+                                    std::cout << "Extracted command: " << extracted << std::endl;
+                                    serverCommand(client->sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                                } else {
+                                    // Neither STX not found or ETX not found or neither then this likely is a client command
+                                    clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
+                                }
+                            
                         }
                     }
                 }
