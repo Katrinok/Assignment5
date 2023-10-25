@@ -402,11 +402,13 @@ int main(int argc, char* argv[]) {
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
-                std::cout << "Received test response after connection: " << tempBuffer << std::endl;
+                
                 if(bytesRead > 0 && std::string(tempBuffer) == "SECRET_KATRIN") {
+                    std::cout << "Received test response after connection: " << tempBuffer << std::endl;
                     // create a new client to store information.
                     clients[clientSock] = new Client(clientSock);
                 } else {
+                    // Spurning um að búa bara hafa client og servera í sama mappi bara hafa flaggann isServer?
                     std::cout << "Received response after connection: " << tempBuffer << std::endl;
                     std::string receivedResponse = tempBuffer;   // Convert char array to string
                     size_t startPos = receivedResponse.find(",");    // Find position of the first comma
