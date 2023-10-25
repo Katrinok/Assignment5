@@ -402,6 +402,7 @@ int main(int argc, char* argv[]) {
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
+                std::cout << "Received test response after connection: " << tempBuffer << std::endl;
                 if(bytesRead > 0 && std::string(tempBuffer) == "SECRET_KATRIN") {
                     // create a new client to store information.
                     clients[clientSock] = new Client(clientSock);
