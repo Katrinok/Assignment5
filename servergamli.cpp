@@ -45,29 +45,42 @@ struct myServer {
     int port;
     int sock;
 
+
     // Constructor
     myServer(const std::string& ip, int p) : ip_address(ip), port(p) {}
 };
 
-// Simple class for handling connections from all connections. The server can connect to many servers, but only one client with the token
-class Connection {
+// Simple class for handling connections from clients.
+//
+// Client(int socket) - socket to send/receive traffic from client.
+class Client {
+    public:
+    int sock;
+    bool isMyClient = false;              // socket of client connection
+    std::string name;           // Limit length of name of client's user
+
+    Client(int socket) : sock(socket){} 
+
+    ~Client(){}            // Virtual destructor defined for base class
+};
+
+// A class Server to represent all connected servers
+class Server {
     public:
     std::string groupID;
     std::string ip_address;
-    bool isServer = true;
     int port;
     int sock;
 
-    Connection(bool _isServer, const std::string& _groupID, const std::string& _ip, int _port, int sock)
-        : isServer(_isServer),groupID(_groupID),ip_address(_ip),port(_port) {}// Virtual destructor defined for base class
-
-    ~Connection(){};
-    friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
+    Server(const std::string& _groupID, const std::string& _ip, int _port, int sock)
+        : groupID(_groupID),ip_address(_ip),port(_port) {}
+    
+    friend std::ostream& operator<<(std::ostream& os, const Server& server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
-std::ostream& operator<<(std::ostream& os, const Connection& connection)
+std::ostream& operator<<(std::ostream& os, const Server& server)
 {
-    os << connection.groupID << "," << connection.ip_address << "," << connection.port; // server obj as GROUP_ID,IP,Port
+    os << server.groupID << "," << server.ip_address << "," << server.port; // server obj as GROUP_ID,IP,Port
     return os;
 }
 
@@ -78,18 +91,16 @@ std::ostream& operator<<(std::ostream& os, const Connection& connection)
 // Quite often a simple array can be used as a lookup table, 
 // (indexed on socket no.) sacrificing memory for speed.
 
-std::vector<Connection> connectionsList; // A global list of servers
+std::map<int, Client*> clients; // Lookup table for per Client information
+std::vector<Server> connectedServers; // A global list of servers
 
 // Get the response for QUERYSERVERS
 std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
 { 
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
 
-    for(const auto& connection : connectionsList) {
-        if (connection.isServer) {
-            response += connection.groupID + "," + connection.ip_address + "," + std::to_string(connection.port) + ";";
-        }
-        
+    for(const auto& server : connectedServers) {
+        response += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
     }
     return response;
 }
@@ -153,24 +164,24 @@ int open_socket(int portno) {
 
 // Close a client's connection, remove it from the client list, and
 // tidy up select sockets afterwards.
-void closeConnection(int socket, fd_set *openSockets, int *maxfds) {
+void closeClient(int clientSocket, fd_set *openSockets, int *maxfds) {
 
-    printf("Client closed connection: %d\n", socket);
+    printf("Client closed connection: %d\n", clientSocket);
 
-    // If this client's/server's socket is maxfds then the next lowest
+    // If this client's socket is maxfds then the next lowest
     // one has to be determined. Socket fd's can be reused by the Kernel,
     // so there aren't any nice ways to do this.
 
-    close(socket);      
+    close(clientSocket);      
 
-    if(*maxfds == socket) {
-        for(auto const& connection : connectionsList) {
-            *maxfds = std::max(*maxfds, connection.sock);
+    if(*maxfds == clientSocket) {
+        for(auto const& p : clients) {
+            *maxfds = std::max(*maxfds, p.second->sock);
         }
     }
 
     // And remove from the list of open sockets.
-    FD_CLR(socket, openSockets);
+    FD_CLR(clientSocket, openSockets);
 }
 
 
@@ -216,8 +227,8 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 // SENDMSG,GROUP ID,<message contents> Send a message to the server for the GROUP ID
 // LISTSERVERS List servers your server is connected to
 
-void Commands(int clientSocket, fd_set *openSockets, int *maxfds, 
-                  std::string buffer, std::string groupID, myServer Server) {
+void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, 
+                  char *buffer, std::string groupID, myServer Server) {
     std::vector<std::string> tokens;
     std::string token;
 
@@ -228,7 +239,7 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
         tokens.push_back(token);
 
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2)) { // IP og port spurning um að bua til struct setja inn allar uppl 
-        connectionsList[clientSocket].groupID = tokens[1]; // name format    
+        clients[clientSocket]->name = tokens[1]; // name format    
     }
 
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
@@ -245,10 +256,10 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
         // Close the socket, and leave the socket handling
         // code to deal with tidying up clients etc. when
         // select() detects the OS has torn down the connection.
-        closeConnection(clientSocket, openSockets, maxfds);
+        closeClient(clientSocket, openSockets, maxfds);
     }
 
-    /*else if(tokens[0].compare("WHO") == 0) {
+    else if(tokens[0].compare("WHO") == 0) {
         std::cout << "Who is logged on" << std::endl;
         std::string msg;
 
@@ -256,7 +267,7 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
             msg += names.second->name + ",";
 
         }
-    }*/
+    }
    /* // Secret identifier only for my client
     else if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
         clients[clientSocket]->isMyClient = true;
@@ -267,7 +278,7 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
     else if (tokens[0].compare("LISTSERVERS") == 0) {
         std::cout << "List servers" << std::endl;
         std::string msg;
-        for(auto const& server : connectionsList) {
+        for(auto const& server : connectedServers) {
             msg += server.groupID + "," + server.ip_address + "," + std::to_string(server.port) + ";";
         }
         send(clientSocket, msg.c_str(), msg.length(),0);
@@ -281,12 +292,12 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
         for(auto i = tokens.begin()+2;i != tokens.end();i++) {
             msg += *i + " ";
         }
-        for(auto const& connection : connectionsList) {
-            send(connection.sock, msg.c_str(), msg.length(),0);
+        for(auto const& pair : clients) {
+            send(pair.second->sock, msg.c_str(), msg.length(),0);
         }
     }
-    /*else if(tokens[0].compare("MSG") == 0) {
-        for(auto const& connection : connectionsList) {
+    else if(tokens[0].compare("MSG") == 0) {
+        for(auto const& pair : clients) {
             if(pair.second->name.compare(tokens[1]) == 0) {
                 std::string msg;
                 for(auto i = tokens.begin()+2;i != tokens.end();i++) {
@@ -295,7 +306,7 @@ void Commands(int clientSocket, fd_set *openSockets, int *maxfds,
                 send(pair.second->sock, msg.c_str(), msg.length(),0);
             }
         }
-    }*/
+    }
     else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
     }
@@ -379,7 +390,8 @@ int main(int argc, char* argv[]) {
         else {
             // First, accept  any new connections to the server on the listening socket
             if(FD_ISSET(listenSock, &readSockets)) {
-                clientSock = accept(listenSock, (struct sockaddr *)&client, &clientLen);
+                clientSock = accept(listenSock, (struct sockaddr *)&client,
+                                   &clientLen);
                 printf("accept***\n");
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
@@ -391,41 +403,36 @@ int main(int argc, char* argv[]) {
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
                 
-                if(bytesRead > 0) {
-                    std::string receivedResponse = tempBuffer;
-                    if (receivedResponse == "SECRET_KATRIN") {
-                        std::cout << "Received test response after connection: " << tempBuffer << std::endl;
-                        // create a new client to store information.
-                        connectionsList.push_back(Connection(false, groupID, "", this_port, clientSock)); 
-                    } else {
-                        // Spurning um að búa bara hafa client og servera í sama mappi bara hafa flaggann isServer?
-                        std::cout << "Received response after connection: " << tempBuffer << std::endl;
-                        size_t startPos = receivedResponse.find(",");    // Find position of the first comma
-                        std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
-                        connectionsList.push_back(Connection(true, receivedGroupID, "", 0, clientSock));
-                    }
+                if(bytesRead > 0 && std::string(tempBuffer) == "SECRET_KATRIN") {
+                    std::cout << "Received test response after connection: " << tempBuffer << std::endl;
+                    // create a new client to store information.
+                    clients[clientSock] = new Client(clientSock);
+                } else {
+                    // Spurning um að búa bara hafa client og servera í sama mappi bara hafa flaggann isServer?
+                    std::cout << "Received response after connection: " << tempBuffer << std::endl;
+                    std::string receivedResponse = tempBuffer;   // Convert char array to string
+                    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+                    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+                    Server newServer(receivedGroupID, 0, 0, clientSock);
+                    connectedServers.push_back(newServer);
                 }
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
 
                printf("Client connected on server: %d\n", clientSock);
             }
-            // Now check for commands from client or servers
+            // Now check for commands from clients
+            std::list<Client *> disconnectedClients;  
             while(n-- > 0) {
-                for(auto const& connection : connectionsList) {
+                for(auto const& pair : clients) {
+                    Client *client = pair.second;
 
-                    if(FD_ISSET(connection.sock, &readSockets)) {
+                    if(FD_ISSET(client->sock, &readSockets)) {
                         // recv() == 0 means client has closed connection
-                        if(recv(connection.sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
-                            // Let the server know if someone disconnects
-                            closeConnection(connection.sock, &openSockets, &maxfds);
-                            std::cout << "Client closed connection: " << connection << std::endl;
-                            // Remove the client/server
-                            connectionsList.erase(std::remove_if(connectionsList.begin(), connectionsList.end(), 
-                                [&connection](const Connection& c) { return c.sock == connection.sock; }), 
-                                connectionsList.end());
-                            
-                            
+                        if(recv(client->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
+                            disconnectedClients.push_back(client);
+                            closeClient(client->sock, &openSockets, &maxfds);
+                            std::cout << "Client closed connection: " << client << std::endl;
                         }
                         // We don't check for -1 (nothing received) because select()
                         // only triggers if there is something on the socket for us.
@@ -434,19 +441,23 @@ int main(int argc, char* argv[]) {
                             // Check if the command has STX and ETX, if so send to a server command function
                             char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
                             char* ETX_ptr = strchr(buffer, ETX);
+
                                 if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
                                     // STX and ETX fournd, extract the string between STX and ETX
                                     std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);
                                     std::cout << "Extracted command: " << extracted << std::endl;
-                                    Commands(connection.sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                                    serverCommand(client->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
                                     // Neither STX not found or ETX not found or neither then this likely is a client command
-                                    Commands(connection.sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
+                                    clientCommand(client->sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
                                 }
                             
                         }
                     }
                 }
+                // Remove client from the clients list
+                for(auto const& c : disconnectedClients)
+                    clients.erase(c->sock);
             }
         }
     }
