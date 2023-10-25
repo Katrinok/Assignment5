@@ -273,7 +273,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2)) { // IP og port spurning um að bua til struct setja inn allar uppl 
         clients[clientSocket]->name = tokens[1]; // name format    
     }
-    
+
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
@@ -288,6 +288,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
  
         closeClient(clientSocket, openSockets, maxfds);
     }
+
     else if(tokens[0].compare("WHO") == 0) {
         std::cout << "Who is logged on" << std::endl;
         std::string msg;
@@ -297,7 +298,7 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
 
         }
     }
-
+    // Secret identifier only for my client
     else if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
         clients[clientSocket]->isMyClient = true;
         std::cout << "My client identified!" << std::endl;
