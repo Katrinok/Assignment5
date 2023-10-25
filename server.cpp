@@ -295,18 +295,14 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds,
             msg += names.second->name + ",";
 
         }
+    }
 
-    // þetta er fyrir okkur að þekkja okkar client
-    if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
+    else if(tokens[0].compare("SECRET_KATRIN") == 0 && tokens.size() == 1) {
         clients[clientSocket]->isMyClient = true;
         std::cout << "My client identified!" << std::endl;
         
     }
-    // Reducing the msg length by 1 loses the excess "," - which
-    // granted is totally cheating.
-    
 
-    }
     else if (tokens[0].compare("LISTSERVERS") == 0) {
         std::cout << "List servers" << std::endl;
         std::string msg;
