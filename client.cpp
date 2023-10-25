@@ -122,14 +122,11 @@ int main(int argc, char* argv[])
             perror("Connect failed: ");
             exit(0);
         }
-        else
-        {
-            // Send identifier to server immediately after connecting
-            std::string clientIdentifier = "IDENTIFY KATRIN";
-            send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
-            std::cout << "Client identifier sent to server: " << clientIdentifier << std::endl;
-        }
     }
+        // Send identifier to server immediately after connecting
+    std::string clientIdentifier = "IDENTIFY KATRIN";
+    send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
+    std::cout << "Client identifier sent to server: " << clientIdentifier << std::endl
 
     // Listen and print replies from server
     std::thread serverThread(listenServer, serverSocket);
