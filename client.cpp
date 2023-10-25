@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
         }
     }
         // Send identifier to server immediately after connecting
-    std::string clientIdentifier = "SECRET_KATRIN";
+    std::string clientIdentifier = "SECRET_KATRIN"; // sent a secret token to know who is who
     send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
     std::cout << "Client identifier sent to server: " << clientIdentifier << std::endl;
 
