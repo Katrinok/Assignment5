@@ -309,7 +309,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
 
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
-    if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) {    
+    if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2 ) {    
         // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
         // Wrap it in STX and ETX
@@ -319,6 +319,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
+    } else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) {    
+        std::cout << "m mmmmmmmmmmmm" << std::endl;
     } else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
@@ -464,9 +466,6 @@ int main(int argc, char* argv[]) {
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
-
-
-                
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
                     std::cout << tempBuffer << std::endl;
@@ -490,7 +489,7 @@ int main(int argc, char* argv[]) {
                             // Split command from client into tokens for parsing
                             while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
-    }
+                            }
                             std::cout << "Förum við hingað" << std::endl;
                             std::string receivedGroupID = tokens[1];  // Extract everything after "QUERYSERVERS,"
                             std::cout << "Received command from " << receivedGroupID << std::endl;
