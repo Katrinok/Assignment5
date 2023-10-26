@@ -331,7 +331,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         *maxfds = std::max(*maxfds, socket);
     
     }
-    /*if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
+    if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
         std::vector<std::string> servers_tokens;
         std::string servers_token;
@@ -349,7 +349,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::cout << response << std::endl; // DEBUG
     
     }
-*/
+
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
   {
      connectionsList[clientSocket]->groupID = tokens[1];
@@ -511,10 +511,8 @@ int main(int argc, char* argv[]) {
             while(n-- > 0) {
                 memset(buffer, 0, sizeof(buffer));
                 for(auto const& pair : connectionsList) {
-                    std::cout << "Fer ég hingað inn lol" << std::endl; //DEBUG
                     Connection *connection = pair.second;
                     if(FD_ISSET(connection->sock, &readSockets)) {
-                        std::cout << "Kemst ég hingað eða" << std::endl;
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
                         // recv() == 0 means client has closed connection
                         if(commandBytes == 0) {
