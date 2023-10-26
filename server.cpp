@@ -23,8 +23,8 @@
 #include <list>
 #include <string>
 #include <cstring>
-//#include <mutex>
-//#include <chrono>
+#include <mutex>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -40,7 +40,7 @@
 
 #define BACKLOG  5          // Allowed length of queue of waiting connections
 
-//std::mutex mtx;  // Mutex for synchronizing access to connectionsList
+std::mutex mtx;  // Mutex for synchronizing access to connectionsList
 // Class to keep information about this server
 struct myServer {
     std::string ip_address;
@@ -209,7 +209,8 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
-/*void keepAliveFunction() {
+// This sends Keepalive to all connected servers every 60 seconds
+void keepAliveFunction() {
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(60)); // Sleep for 60 seconds
 
@@ -224,7 +225,7 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
         }
         mtx.unlock();
     }
-}*/
+}
 
 
 
@@ -280,14 +281,14 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         connectionsList[serverSock] = newConnection;
     }
 
-    std::string queryservers = "QUERYSERVERS," + groupID; // Send QUERYSERVERS to the server
+    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
     queryservers = wrapWithSTXETX(queryservers);
 
     
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
-    std::cout << "We send: " << queryservers << std::endl; //DEBUG
+    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
 
 
     return serverSock;
@@ -333,82 +334,47 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
-        std::cout << "BÖFFER MÍNUS SERVER, : " << buffer.substr(8) << std::endl; //DEBUG
         // Split command from client into tokens for parsing
         while(std::getline(stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token);
         }
-        //for(int i = 1; i < servers_tokens.size(); i++) {
-          //std::cout << servers_tokens[i] << std::endl; //DEBUG  
-        //}
-
-        std:: string response = queryserversResponse(from_groupID, server);
-        std::cout << "Það sem við viljum senda á Serverinn"<< response << std::endl; // DEBUG
+        
+        for(auto i = 1u; i < servers_tokens.size(); i++) {
+            std::cout << "JÆJAAAAA" << std::endl; //DEBUG  
+            std::cout << servers_tokens[i] << std::endl; //DEBUG  
+        }
     
-    } else {
+    }else if (tokens[0].compare("LISTSERVERS") == 0) {
+        std::cout << "List servers" << std::endl;
+        std::string msg;
+        for(auto const& pair : connectionsList) {
+            Connection *connection = pair.second;
+            msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+        }
+        send(server_socket, msg.c_str(), msg.length(),0);
+        std::cout << "Message sent was" << msg << std::endl;
+    } 
+    
+    
+    else {
         std::cout << "Unknown command:" << buffer << std::endl;
-    }
-
-  /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
-  {
-     connectionsList[clientSocket]->groupID = tokens[1];
-  }
-  else if(tokens[0].compare("LEAVE") == 0)
-  {
-      // Close the socket, and leave the socket handling
-      // code to deal with tidying up clients etc. when
-      // select() detects the OS has torn down the connection.
- 
-      closeConnection(clientSocket, openSockets, maxfds);
-  }
-  else if(tokens[0].compare("WHO") == 0)
-  {
-     std::cout << "Who is logged on" << std::endl;
-     std::string msg;
-
-     for(auto const& groupID : connectionsList)
-     {
-        msg += groupID.second->groupID + ",";
-
-     }
-     // Reducing the msg length by 1 loses the excess "," - which
-     // granted is totally cheating.
-     send(clientSocket, msg.c_str(), msg.length()-1, 0);
-
-  }
-  // This is slightly fragile, since it's relying on the order
-  // of evaluation of the if statement.
-  else if((tokens[0].compare("MSG") == 0) && (tokens[1].compare("ALL") == 0))
-  {
-      std::string msg;
-      for(auto i = tokens.begin()+2;i != tokens.end();i++) 
-      {
-          msg += *i + " ";
-      }
-
-      for(auto const& pair : connectionsList)
-      {
-          send(pair.second->sock, msg.c_str(), msg.length(),0);
-      }
-  }
-  else if(tokens[0].compare("MSG") == 0)
-  {
-      for(auto const& pair : connectionsList)
-      {
-          if(pair.second->groupID.compare(tokens[1]) == 0)
-          {
-              std::string msg;
-              for(auto i = tokens.begin()+2;i != tokens.end();i++) 
-              {
-                  msg += *i + " ";
-              }
-              send(pair.second->sock, msg.c_str(), msg.length(),0);
-          }
-      }
-  }*/
-    
-     
+    }   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int main(int argc, char* argv[]) {
     // Messages format
@@ -452,7 +418,7 @@ int main(int argc, char* argv[]) {
     }
 
     finished = false;
-    //std::thread keepAliveThread(keepAliveFunction); // Start the keepalive thread
+    std::thread keepAliveThread(keepAliveFunction); // Start the keepalive thread
     while(!finished) {
         // Get modifiable copy of readSockets
         readSockets = exceptSockets = openSockets;
@@ -480,7 +446,6 @@ int main(int argc, char* argv[]) {
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
-                
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
@@ -496,6 +461,7 @@ int main(int argc, char* argv[]) {
                         std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
                         Connection* newConnection = new Connection(clientSock);
                         newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+                        std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
                         connectionsList[clientSock] = newConnection;
                         // HÉR ÞARF AÐ SVARA MEÐ SERVERS
                     }
@@ -523,13 +489,15 @@ int main(int argc, char* argv[]) {
                             // only triggers if there is something on the socket for us.
                             char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
                             char* ETX_ptr = strchr(buffer, ETX);
-    
+                            
                             if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
                                 // STX and ETX found, extract the string between STX and ETX
                                 std::string extracted = extractCommand(buffer);
+                                std::cout << "Received command from " << connection->groupID << ": " << extracted <<"\n"<< std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                             } else {
                                 // STX not found or ETX not found or neither then treat it as a client command
+                                std::cout << "Received command from " << connection->groupID << ": " << buffer <<"\n" << std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                             }
                         }
@@ -540,6 +508,7 @@ int main(int argc, char* argv[]) {
                     connectionsList.erase(c->sock);
             }
         }
-    }
+    } 
+    keepAliveThread.join();
 }
-    //keepAliveThread.join();
+    
