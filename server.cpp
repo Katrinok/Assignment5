@@ -133,8 +133,8 @@ int open_socket(int portno) {
 
     sk_addr.sin_family      = AF_INET;
     //sk_addr.sin_addr.s_addr = INADDR_ANY;
-    //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
-    sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
+    sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
+    //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
 
     // Bind to socket to listen for connections from clients
@@ -179,7 +179,6 @@ std::string extractCommand(const char* buffer) {
     const char* ETX_ptr = strchr(buffer, ETX);
 
     // Check if both STX and ETX are present, and STX appears before ETX
-    std::cout << "Förum við hingað inn" << std::endl; //DEBUG
     if(STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
         int extractedLength = ETX_ptr - STX_ptr - 1;   // Determine the length of the extracted string
         return std::string(STX_ptr + 1, extractedLength); // Create and return a std::string from the portion between STX and ETX
@@ -207,7 +206,6 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
             response += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
         }
     }
-    std::cout << response << std::endl; //DEBUG
     return response;
 }
 
@@ -320,8 +318,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
-    }
-    if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
+    } else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
@@ -330,24 +327,26 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
     
-    }
-    if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
+    } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
+        
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
-        std::cout << buffer.substr(8) << std::endl; //DEBUG
+        std::cout << "BÖFFER MÍNUS SERVER, : " << buffer.substr(8) << std::endl; //DEBUG
         // Split command from client into tokens for parsing
         while(std::getline(stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token);
         }
-        for(int i = 1; i < servers_tokens.size(); i++) {
-            
-        }
+        //for(int i = 1; i < servers_tokens.size(); i++) {
+          //std::cout << servers_tokens[i] << std::endl; //DEBUG  
+        //}
 
         std:: string response = queryserversResponse(from_groupID, server);
-        std::cout << response << std::endl; // DEBUG
+        std::cout << "Það sem við viljum senda á Serverinn"<< response << std::endl; // DEBUG
     
+    } else {
+        std::cout << "Unknown command:" << buffer << std::endl;
     }
 
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
@@ -407,9 +406,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
           }
       }
   }*/
-    else {
-        std::cout << "Unknown command:" << buffer << std::endl;
-    }
+    
      
 }
 
@@ -420,8 +417,8 @@ int main(int argc, char* argv[]) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
-    //myServer myServer("130.208.243.61", this_port);
-    myServer myServer("127.0.0.1", this_port);
+    myServer myServer("130.208.243.61", this_port);
+    //myServer myServer("127.0.0.1", this_port);
 
     bool finished;
     int listenSock;                 // Socket for connections to server
@@ -491,6 +488,7 @@ int main(int argc, char* argv[]) {
                         std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
                         Connection* newConnection = new Connection(clientSock);
                         newConnection->groupID = groupID;  // Set the group ID in the Connection instance
+                        newConnection->isServer = false;
                         connectionsList[clientSock] = newConnection;
                         
 
@@ -525,7 +523,6 @@ int main(int argc, char* argv[]) {
                             // only triggers if there is something on the socket for us.
                             char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
                             char* ETX_ptr = strchr(buffer, ETX);
-                            std::cout << buffer << std::endl;
     
                             if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
                                 // STX and ETX found, extract the string between STX and ETX
@@ -533,7 +530,6 @@ int main(int argc, char* argv[]) {
                                 clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                             } else {
                                 // STX not found or ETX not found or neither then treat it as a client command
-                                std::cout << "Fer ég hingað inn" << std::endl; //DEBUG
                                 clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                             }
                         }
