@@ -40,6 +40,7 @@
 
 #define BACKLOG  5          // Allowed length of queue of waiting connections
 
+std::mutex mtx;  // Mutex for synchronizing access to connectionsList
 // Class to keep information about this server
 struct myServer {
     std::string ip_address;
@@ -208,6 +209,23 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     }
     std::cout << response << std::endl; //DEBUG
     return response;
+}
+
+void keepAliveFunction() {
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(60)); // Sleep for 60 seconds
+
+        // Lock the mutex to safely iterate over connectionsList
+        mtx.lock();
+        for(auto const& pair : connectionsList) {
+            Connection *connection = pair.second;
+            // Send the keepalive message to each connection. 
+            // Replace the message below with whatever your protocol needs.
+            std::string keepaliveMessage = "KEEPALIVE";
+            send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
+        }
+        mtx.unlock();
+    }
 }
 
 
@@ -436,7 +454,7 @@ int main(int argc, char* argv[]) {
     }
 
     finished = false;
-
+    std::thread keepAliveThread(keepAliveFunction); // Start the keepalive thread
     while(!finished) {
         // Get modifiable copy of readSockets
         readSockets = exceptSockets = openSockets;
@@ -532,4 +550,5 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    keepAliveThread.join();
 }
