@@ -247,6 +247,16 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     } 
 
+    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
+    queryservers = wrapWithSTXETX(queryservers);
+
+    
+    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
+        perror("Error sending SERVERS message");
+    }
+    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
+    
+
     char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
 
@@ -276,14 +286,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         connectionsList[serverSock] = newConnection;
     }
 
-    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
-    queryservers = wrapWithSTXETX(queryservers);
-
-    
-    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
-        perror("Error sending SERVERS message");
-    }
-    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
     return serverSock;
 }
 
