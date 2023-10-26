@@ -212,9 +212,11 @@ void keepAliveFunction() {
             Connection *connection = pair.second;
             // Send the keepalive message to each connection. 
             // Replace the message below with whatever your protocol needs.
-            std::string keepaliveMessage = "KEEPALIVE";
-            std::cout << "Sending keepalive to " << connection->groupID << std::endl;
-            send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
+            if(connection->isServer){
+                std::string keepaliveMessage = "KEEPALIVE";
+                std::cout << "Sending keepalive to " << connection->groupID << std::endl;
+                send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
+            }
         }
         mtx.unlock();
     }
@@ -326,7 +328,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
         // Split command from client into tokens for parsing
-        while(std::getline(stream, servers_token, ';')) {
+        while(std::getline(servers_stream, servers_token, ';')) {
+            std::cout << servers_token << std::endl; //DEBUG  
             servers_tokens.push_back(servers_token);
         }
         
@@ -344,7 +347,27 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         send(server_socket, msg.c_str(), msg.length(),0);
         std::cout << "Message sent was" << msg << std::endl;
-    } else {
+
+    }/*else if(tokens[0].compare("SENDMSG") == 0) {
+        std::cout << "Send message" << std::endl;
+        std::string msg;
+        for(auto const& pair : connectionsList) {
+            Connection *connection = pair.second;
+            msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+        }
+        send(server_socket, msg.c_str(), msg.length(),0);
+        std::cout << "Message sent was" << msg << std::endl;
+    }else if(tokens[0].compare("FETCHMSG") == 0) {
+    
+    }*/
+    
+    
+    
+    
+    
+    
+    
+    else {
         std::cout << "Unknown command:" << buffer << std::endl;
     }   
 }
@@ -436,6 +459,7 @@ int main(int argc, char* argv[]) {
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
+                    std::cout << tempBuffer << std::endl;
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         // create a new client to store information.
                         std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
@@ -443,17 +467,23 @@ int main(int argc, char* argv[]) {
                         newConnection->groupID = groupID;  // Set the group ID in the Connection instance
                         newConnection->isServer = false;
                         connectionsList[clientSock] = newConnection;
-                        printf("Client connected on server: %d\n, with id: %s", clientSock, newConnection->groupID.c_str());
+                        printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
                         
 
-                    } else if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
-                        std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-                        Connection* newConnection = new Connection(clientSock);
-                        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
-                        std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
-                        connectionsList[clientSock] = newConnection;
-                        // HÉR ÞARF AÐ SVARA MEÐ SERVERS
-                        printf("Client connected on server: %d\n, with id: %s", clientSock, newConnection->groupID.c_str());
+                    } else { 
+                        std::string extracted = extractCommand(tempBuffer);
+                        if(extracted.substr(0, 13) == "QUERYSERVERS,") {
+                            std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
+                            if(receivedGroupID.compare("38") == 0) { //block group 38
+                                Connection* newConnection = new Connection(clientSock);
+                                newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+                                std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
+                                connectionsList[clientSock] = newConnection;
+                                // HÉR ÞARF AÐ SVARA MEÐ SERVERS 
+                                clientCommand(newConnection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                                printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
+                            }
+                        }
                     }
                     
                 }
