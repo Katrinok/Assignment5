@@ -222,6 +222,15 @@ void keepAliveFunction() {
     }
 }
 
+void send_queryservers(int server_sock, std::string groupID, myServer myServer) {
+    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
+    queryservers = wrapWithSTXETX(queryservers);
+    if(send(server_sock, queryservers.c_str(), queryservers.length(), 0) < 0) {
+        perror("Error sending SERVERS message");
+    }
+    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
+}
+
 
 
 // A function that makes the server connect to another server
@@ -246,16 +255,8 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error connecting to server");
         return -1;
     } 
-
-    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
-    queryservers = wrapWithSTXETX(queryservers);
-
-    
-    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
-        perror("Error sending SERVERS message");
-    }
-    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
-    
+    //Hér sendum við queryservers
+    send_queryservers(serverSock, groupID, myServer);
 
     char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
@@ -290,7 +291,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
             perror("Error sending SERVERS message");
         }
     }
-
     return serverSock;
 }
 
@@ -319,8 +319,17 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
-    } else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) {    
-        std::cout << "m mmmmmmmmmmmm" << std::endl;
+    } else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) { //also if the ip anf port is sent too
+        // Put together the SERVERS response 
+        std::string servers_response = queryserversResponse(from_groupID, server);
+        // Wrap it in STX and ETX
+        servers_response = wrapWithSTXETX(servers_response);
+        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+            perror("Error sending SERVERS message");
+            return;
+        }
+        std::cout << "SERVERS sent: " << servers_response << std::endl;
+
     } else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
@@ -493,7 +502,8 @@ int main(int argc, char* argv[]) {
                             std::cout << "Förum við hingað" << std::endl;
                             std::string receivedGroupID = tokens[1];  // Extract everything after "QUERYSERVERS,"
                             std::cout << "Received command from " << receivedGroupID << std::endl;
-                            if(tokens[1].find("38") == std::string::npos) { //block group 38°
+                            if(tokens[1].find("38") == std::string::npos) { //block group 38
+                                send_queryservers(clientSock, groupID, myServer);
                                 std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
                                 Connection* newConnection = new Connection(clientSock);
                                 newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
