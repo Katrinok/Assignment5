@@ -215,8 +215,8 @@ void keepAliveFunction() {
             if(connection->isServer){
                 std::string keepaliveMessage = "KEEPALIVE";
                 std::cout << "Sending keepalive to " << connection->groupID << std::endl;
-                send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
-            }
+                send(connection->sock, wrapWithSTXETX(keepaliveMessage).c_str(), keepaliveMessage.size(), 0);
+            } 
         }
         mtx.unlock();
     }
