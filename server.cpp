@@ -310,6 +310,25 @@ int main(int argc, char* argv[]) {
                 // create a new client to store information.
                 connectionsList[clientSock] = new Connection(clientSock);
 
+                // Temporary buffer to read the initial message
+                char tempBuffer[1024] = {0};
+                int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
+                
+                if(bytesRead > 0) {
+                    std::string receivedResponse = tempBuffer;
+                    if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
+                        // create a new client to store information.
+                        connectionsList[clientSock] = new Connection(clientSock);
+
+                    } else {
+                        // If no secret string then treat it as a Server
+                        size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+                        std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+                        connectionsList[clientSock] = new Connection(clientSock);
+                    }
+                }
+
+
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
 

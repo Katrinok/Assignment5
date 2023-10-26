@@ -215,7 +215,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     std::cout << "QUERYSERVERS sent: " << message << std::endl;
 
 
-        char responseBuffer[1025]; // Buffer to hold the response
+    char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
 
     int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
@@ -357,12 +357,12 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
-    std::string groupID = "P3_GROUP_20";
+    std::string groupID = "P3_GROUP_79";
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
     //myServer myServer("130.208.243.61", this_port); // endanum verður ip address input arg
-    myServer myServer("127.0.0.1", this_port);
+    myServer myServer("130.208.243.61", this_port);
     bool finished;
     int listenSock;                 // Socket for connections to server
     int clientSock;                 // Socket of connecting client
