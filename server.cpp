@@ -21,6 +21,8 @@
 #include <map>
 #include <vector>
 #include <list>
+#include <string>
+#include <cstring>
 
 #include <iostream>
 #include <sstream>
@@ -115,8 +117,8 @@ int open_socket(int portno) {
 
     sk_addr.sin_family      = AF_INET;
     //sk_addr.sin_addr.s_addr = INADDR_ANY;
-    //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
-    sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
+    sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
+    //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
 
     // Bind to socket to listen for connections from clients
@@ -153,6 +155,24 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
 
 }
 
+std::string extractCommand(const char* buffer) {
+    const char STX = 0x02;  // Start of command
+    const char ETX = 0x03;  // End of command
+    
+    const char* STX_ptr = strchr(buffer, STX);
+    const char* ETX_ptr = strchr(buffer, ETX);
+
+    // Check if both STX and ETX are present, and STX appears before ETX
+    std::cout << "Förum við hingað inn" << std::endl; //DEBUG
+    if(STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
+        int extractedLength = ETX_ptr - STX_ptr - 1;   // Determine the length of the extracted string
+        return std::string(STX_ptr + 1, extractedLength); // Create and return a std::string from the portion between STX and ETX
+    }
+
+    // Return empty string if the conditions are not met
+    return "";
+}
+
 // Wraps the command
 std::string wrapWithSTXETX(const std::string& payload) {
     char STX = 0x02;  // Start of Text (ASCII representation)
@@ -175,23 +195,101 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
+// A function that makes the server connect to another server
+int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
+    int serverSock;
+    struct sockaddr_in serverAddr;
+    serverSock = socket(AF_INET, SOCK_STREAM, 0);
+    if(serverSock < 0) {
+        perror("Error opening socket");
+        return -1;
+    }
+
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(port);
+    if(inet_pton(AF_INET, ip_address.c_str(), &serverAddr.sin_addr) <= 0) {
+        perror("Error converting IP address");
+        return -1;
+    }
+
+    if(connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+        perror("Error connecting to server");
+        return -1;
+    } 
+
+    char responseBuffer[1025]; // Buffer to hold the response
+    memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
+
+    int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
+    if(bytesRead < 0) {
+        perror("Error receiving response from server");
+        close(serverSock);
+        return -1;
+    }
+    else if(bytesRead == 0) {
+        std::cout << "Server closed connection after sending QUERYSERVERS" << std::endl;
+        close(serverSock);
+        return -1;
+    }
+    else {
+        std::cout << "Received response after connection: " << responseBuffer <<std::endl;
+    }
+    std::string receivedResponse = extractCommand(responseBuffer);   // Convert char array to string
+
+    if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
+        // Now we should receive QUERYSERVERS response with the group id from the newly connected server
+        std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
+        Connection* newConnection = new Connection(serverSock);
+        newConnection->ip_address = ip_address;
+        newConnection->port = port;
+        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+        connectionsList[serverSock] = newConnection;
+    }
+
+    std::string queryservers = "QUERYSERVERS," + groupID; // Send QUERYSERVERS to the server
+    queryservers = wrapWithSTXETX(queryservers);
+
+    
+    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
+        perror("Error sending SERVERS message");
+    }
+    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
+
+
+    return serverSock;
+}
+
+
 // Process command from client on the server
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
-                  char *buffer, std::string from_groupID, myServer server) 
+                  std::string buffer, std::string from_groupID, myServer server) 
 {
-  std::vector<std::string> tokens;
-  std::string token;
+    std::vector<std::string> tokens;
+    std::stringstream stream(buffer);
+    std::string token;
 
-  // Split command from client into tokens for parsing
-  std::stringstream stream(buffer);
+    // Split command from client into tokens for parsing
+    while(std::getline(stream, token, ',')) {
+        tokens.push_back(token);
+    }
 
-  while(stream >> token)
-      tokens.push_back(token);
-
+    // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
+    if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) {    
+        // Put together the SERVERS response 
+        std::string servers_response = queryserversResponse(from_groupID, server);
+        // Wrap it in STX and ETX
+        servers_response = wrapWithSTXETX(servers_response);
+        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+            perror("Error sending SERVERS message");
+            return;
+        }
+        std::cout << "SERVERS sent: " << servers_response << std::endl;
+    }
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
   {
      connectionsList[clientSocket]->groupID = tokens[1];
-  }*/
+  }
   else if(tokens[0].compare("LEAVE") == 0)
   {
       // Close the socket, and leave the socket handling
@@ -244,7 +342,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
               send(pair.second->sock, msg.c_str(), msg.length(),0);
           }
       }
-  }
+  }*/
   else
   {
       std::cout << "Unknown command from client:" << buffer << std::endl;
@@ -259,7 +357,7 @@ int main(int argc, char* argv[]) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
-    myServer myServer("127.0.0.1", this_port);
+    myServer myServer("130.208.243.61", this_port);
 
     bool finished;
     int listenSock;                 // Socket for connections to server
@@ -366,13 +464,19 @@ int main(int argc, char* argv[]) {
                                     /*// STX and ETX found, extract the string between STX and ETX
                                     std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);*/
 
-                                    int extractedLength = ETX_ptr - STX_ptr - 1;// Determine the length of the extracted string
-                                    char extracted[extractedLength + 1];// Create a char array of the required size plus one for the null terminator
-                                    strncpy(extracted, STX_ptr + 1, extractedLength);// Copy the portion of the original char buffer to this new array
-                                    extracted[extractedLength] = '\0';// Null-terminate the new array
+                                    //int extractedLength = ETX_ptr - STX_ptr - 1;// Determine the length of the extracted string
+                                    //char extracted[extractedLength + 1];// Create a char array of the required size plus one for the null terminator
+                                    //strncpy(extracted, STX_ptr + 1, extractedLength);// Copy the portion of the original char buffer to this new array
+                                    //extracted[extractedLength] = '\0';// Null-terminate the new array
 
-                                    std::cout << "Extracted command: " << extracted << std::endl;
+                                    //std::cout << "Extracted command: " << extracted << std::endl;
+                                    std::string extracted = extractCommand(buffer);
                                     clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                                } else {
+                                    // STX not found or ETX not found or neither then treat it as a client command
+                                    std::cout << buffer << "<--- buffer" << std::endl;
+                                    clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
+                                }
                             }
                         }
                     }
