@@ -176,7 +176,8 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
 }
 
 // Process command from client on the server
-void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, char *buffer) 
+void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
+                  char *buffer, std::string from_groupID, myServer server) 
 {
   std::vector<std::string> tokens;
   std::string token;
@@ -187,10 +188,10 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, char *buf
   while(stream >> token)
       tokens.push_back(token);
 
-  if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
+  /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
   {
      connectionsList[clientSocket]->groupID = tokens[1];
-  }
+  }*/
   else if(tokens[0].compare("LEAVE") == 0)
   {
       // Close the socket, and leave the socket handling
@@ -252,6 +253,14 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, char *buf
 }
 
 int main(int argc, char* argv[]) {
+    // Messages format
+    int this_port = atoi(argv[1]);
+    std::string groupID = "P3_GROUP_20";
+    const char STX = 0x02;  // Start of command
+    const char ETX = 0x03;  // End of command
+
+    myServer myServer("127.0.0.1", this_port);
+
     bool finished;
     int listenSock;                 // Socket for connections to server
     int clientSock;                 // Socket of connecting client
@@ -270,8 +279,8 @@ int main(int argc, char* argv[]) {
 
     // Setup socket for server to listen to
 
-    listenSock = open_socket(atoi(argv[1])); 
-    printf("Listening on port: %d\n", atoi(argv[1]));
+    listenSock = open_socket(this_port); 
+    printf("Listening on port: %d\n", this_port);
 
     if(listen(listenSock, BACKLOG) < 0) {
         printf("Listen failed on port %s\n", argv[1]);
@@ -320,45 +329,57 @@ int main(int argc, char* argv[]) {
                         // create a new client to store information.
                         connectionsList[clientSock] = new Connection(clientSock);
 
-                    } else {
-                        // If no secret string then treat it as a Server
-                        size_t startPos = receivedResponse.find(",");    // Find position of the first comma
-                        std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
-                        connectionsList[clientSock] = new Connection(clientSock);
+                    } else if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
+                        std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
+                        Connection* newConnection = new Connection(clientSock);
+                        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+                        connectionsList[clientSock] = newConnection;
                     }
-                }
-
 
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
 
                 printf("Client connected on server: %d\n", clientSock);
-            }
-            // Now check for commands from clients
-            std::list<Connection *> disconnectedServers;  
-            while(n-- > 0) {
-                for(auto const& pair : connectionsList) {
-                    Connection *connection = pair.second;
+                }
+                // Now check for commands from clients
+                std::list<Connection *> disconnectedServers;  
+                while(n-- > 0) {
+                    for(auto const& pair : connectionsList) {
+                        Connection *connection = pair.second;
 
-                    if(FD_ISSET(connection->sock, &readSockets)) {
-                        // recv() == 0 means client has closed connection
-                        if(recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
-                            disconnectedServers.push_back(connection);
-                            closeConnection(connection->sock, &openSockets, &maxfds);
-                            std::cout << "Client closed connection: " << connection << std::endl;
+                        if(FD_ISSET(connection->sock, &readSockets)) {
+                            int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+                            // recv() == 0 means client has closed connection
+                            if(recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
+                                disconnectedServers.push_back(connection);
+                                closeConnection(connection->sock, &openSockets, &maxfds);
+                                std::cout << "Client closed connection: " << connection << std::endl;
 
-                        } else {
-                            // We don't check for -1 (nothing received) because select()
-                            // only triggers if there is something on the socket for us.
-                            
-                            std::cout << buffer << std::endl;
-                            clientCommand(connection->sock, &openSockets, &maxfds, buffer);
+                            } else {
+                                // We don't check for -1 (nothing received) because select()
+                                // only triggers if there is something on the socket for us.
+                                char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
+                                char* ETX_ptr = strchr(buffer, ETX);
+                                std::cout << buffer << std::endl;
+        
+                                if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
+                                    /*// STX and ETX found, extract the string between STX and ETX
+                                    std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);*/
+
+                                    int extractedLength = ETX_ptr - STX_ptr - 1;// Determine the length of the extracted string
+                                    char extracted[extractedLength + 1];// Create a char array of the required size plus one for the null terminator
+                                    strncpy(extracted, STX_ptr + 1, extractedLength);// Copy the portion of the original char buffer to this new array
+                                    extracted[extractedLength] = '\0';// Null-terminate the new array
+
+                                    std::cout << "Extracted command: " << extracted << std::endl;
+                                    clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                            }
                         }
                     }
+                    // Remove client from the clients list
+                    for(auto const& c : disconnectedServers)
+                        connectionsList.erase(c->sock);
                 }
-                // Remove client from the clients list
-                for(auto const& c : disconnectedServers)
-                    connectionsList.erase(c->sock);
             }
         }
     }

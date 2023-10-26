@@ -57,3 +57,17 @@
     std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
     Server newServer(receivedGroupID, ip_address, port, serverSock);
     connectedServers.push_back(newServer);
+
+
+
+        printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
+    
+    std::string message = "QUERYSERVERS," + groupID;
+    message = wrapWithSTXETX(message);
+    std::cout << "message: " << message << std::endl; //DEBUG
+
+    if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
+        perror("Error sending QUERYSERVERS message");
+        return -1;
+    }
+    std::cout << "QUERYSERVERS sent: " << message << std::endl;

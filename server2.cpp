@@ -202,19 +202,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     } 
 
-    printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
-    
-    std::string message = "QUERYSERVERS," + groupID;
-    message = wrapWithSTXETX(message);
-    std::cout << "message: " << message << std::endl; //DEBUG
-
-    if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
-        perror("Error sending QUERYSERVERS message");
-        return -1;
-    }
-    std::cout << "QUERYSERVERS sent: " << message << std::endl;
-
-
     char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
 
@@ -230,9 +217,23 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     }
     else {
-        std::cout << "Received response after connection: " << responseBuffer <<"Kemur þetta allt hér" <<std::endl;
+        std::cout << "Received response after connection: " << responseBuffer <<std::endl;
     }
+    std::string receivedResponse = responseBuffer;   // Convert char array to string
+    size_t startPos = receivedResponse.find(",");    // Find position of the first comma
+    std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
+    connectionsList.push_back(Connection(true, receivedGroupID, ip_address, port, serverSock)); // Add to the list of connected servers
     
+    std::string queryservers = "QUERYSERVERS," + groupID; // Send QUERYSERVERS to the server
+    queryservers = wrapWithSTXETX(queryservers);
+
+    
+    if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
+        perror("Error sending SERVERS message");
+    }
+    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
+
+
     return serverSock;
 }
 
@@ -432,6 +433,7 @@ int main(int argc, char* argv[]) {
 
                     } else {
                         // If no secret string then treat it as a Server
+                        std::cout << "Fer ég svo hingað inn: " << receivedResponse <<std::endl;
                         size_t startPos = receivedResponse.find(",");    // Find position of the first comma
                         std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
                         connectionsList.push_back(Connection(true, receivedGroupID, "", 0, clientSock));
@@ -452,7 +454,9 @@ int main(int argc, char* argv[]) {
                 for(auto const& connection : connectionsList) {
                     if(FD_ISSET(connection.sock, &readSockets)) {
                         
-                        int commandBytes = recv(connection.sock, buffer, sizeof(buffer), MSG_DONTWAIT);std::cout << buffer << std::endl;
+                        int commandBytes = recv(connection.sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+                        std::cout << "Ferég hingað og fæ servers: " << commandBytes << std::endl;
+                        std::cout << buffer << std::endl;
                         // recv() == 0 means client has closed connection
                         if(commandBytes == 0) {
                             // Let the server know if someone disconnects
