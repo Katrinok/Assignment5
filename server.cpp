@@ -487,6 +487,7 @@ int main(int argc, char* argv[]) {
                     std::string receivedResponse = tempBuffer;
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         // create a new client to store information.
+                        std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
                         Connection* newConnection = new Connection(clientSock);
                         newConnection->groupID = groupID;  // Set the group ID in the Connection instance
                         connectionsList[clientSock] = newConnection;
@@ -538,6 +539,7 @@ int main(int argc, char* argv[]) {
                                     clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
                                     // STX not found or ETX not found or neither then treat it as a client command
+                                    std::cout << "Fer ég hingað inn" << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                                 }
                             }
