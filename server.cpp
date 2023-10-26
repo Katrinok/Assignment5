@@ -341,7 +341,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         while(std::getline(stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token);
         }
-        /*for(int i = 1; i < servers_tokens.size(); i++) {
+        for(int i = 1; i < servers_tokens.size(); i++) {
             
         }
 
