@@ -52,14 +52,14 @@ struct myServer {
 // Simple class for handling connections from all connections. The server can connect to many servers, but only one client with the token
 class Connection {
     public:
+    bool isServer = true;
     std::string groupID;
     std::string ip_address;
-    bool isServer = true;
     int port;
     int sock;
 
-    Connection(bool _isServer, const std::string& _groupID, const std::string& _ip, int _port, int sock)
-        : isServer(_isServer),groupID(_groupID),ip_address(_ip),port(_port) {}// Virtual destructor defined for base class
+    Connection(bool _isServer, const std::string& _groupID, const std::string& _ip, int _port, int _sock)
+        : isServer(_isServer),groupID(_groupID),ip_address(_ip),port(_port),sock(_sock) {}// Virtual destructor defined for base class
 
     ~Connection(){};
     friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
@@ -201,9 +201,11 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 
     printf("Connected to server at %s:%d\n", ip_address.c_str(), port);
     std::string message = wrapWithSTXETX("QUERYSERVERS," + groupID);
+    std::cout << "message: " << message << std::endl; //DEBUG
 
     if(send(serverSock, message.c_str(), message.length(), 0) < 0) {
         perror("Error sending QUERYSERVERS message");
+        return -1;
     }
     std::cout << "QUERYSERVERS sent: " << message << std::endl;
     
@@ -216,22 +218,22 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 // SENDMSG,GROUP ID,<message contents> Send a message to the server for the GROUP ID
 // LISTSERVERS List servers your server is connected to
 
-void Commands(int clientSocket, fd_set *openSockets, int *maxfds, 
-                  std::string buffer, std::string groupID, myServer Server) {
+void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, std::string buffer, std::string groupID, myServer Server) {
     std::vector<std::string> tokens;
     std::string token;
 
     // Split command from client into tokens for parsing
     std::stringstream stream(buffer);
 
-    while(stream >> token)
+    while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
-
-    if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2)) { // IP og port spurning um að bua til struct setja inn allar uppl 
-        connectionsList[clientSocket].groupID = tokens[1]; // name format    
     }
+    /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2)) { // IP og port spurning um að bua til struct setja inn allar uppl 
+        connectionsList[clientSocket].groupID = tokens[1]; // name format    
+    }*/
 
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
+        std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, groupID, Server);
@@ -393,13 +395,13 @@ int main(int argc, char* argv[]) {
                 
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
-                    if (receivedResponse == "SECRET_KATRIN") {
+                    if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         std::cout << "Received test response after connection: " << tempBuffer << std::endl;
                         // create a new client to store information.
                         connectionsList.push_back(Connection(false, groupID, "", this_port, clientSock)); 
+
                     } else {
-                        // Spurning um að búa bara hafa client og servera í sama mappi bara hafa flaggann isServer?
-                        std::cout << "Received response after connection: " << tempBuffer << std::endl;
+                        // If no secret string then treat it as a Server
                         size_t startPos = receivedResponse.find(",");    // Find position of the first comma
                         std::string receivedGroupID = receivedResponse.substr(startPos + 1);  // Extract group ID
                         connectionsList.push_back(Connection(true, receivedGroupID, "", 0, clientSock));
@@ -411,25 +413,29 @@ int main(int argc, char* argv[]) {
                printf("Client connected on server: %d\n", clientSock);
             }
             // Now check for commands from client or servers
+            std::vector<int> closedSockets;
             while(n-- > 0) {
                 for(auto const& connection : connectionsList) {
-
                     if(FD_ISSET(connection.sock, &readSockets)) {
+                        int commandBytes = recv(connection.sock, buffer, sizeof(buffer), MSG_DONTWAIT);
                         // recv() == 0 means client has closed connection
-                        if(recv(connection.sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
+                        if(commandBytes == 0) {
                             // Let the server know if someone disconnects
+                            closedSockets.push_back(connection.sock);  // Add to closed list
                             closeConnection(connection.sock, &openSockets, &maxfds);
                             std::cout << "Client closed connection: " << connection << std::endl;
-                            // Remove the client/server
-                            connectionsList.erase(std::remove_if(connectionsList.begin(), connectionsList.end(), 
-                                [&connection](const Connection& c) { return c.sock == connection.sock; }), 
-                                connectionsList.end());
-                            
-                            
+                        }
+                        else if(commandBytes < 0) { // there was an error
+                            if(errno != EAGAIN && errno != EWOULDBLOCK) { // real error, not just non-blocking no-data
+                                closedSockets.push_back(connection.sock);
+                                closeConnection(connection.sock, &openSockets, &maxfds);
+                                std::cout << "Error on connection: " << connection << std::endl;
+                            }
                         }
                         // We don't check for -1 (nothing received) because select()
                         // only triggers if there is something on the socket for us.
                         else {
+                            buffer[commandBytes] = '\0'; // ensure null termination
                             std::cout << buffer << std::endl; // Skoða hér og aðskilja á STX og ETX hér er hægt að skoða mun a server og client
                             // Check if the command has STX and ETX, if so send to a server command function
                             char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
@@ -438,15 +444,24 @@ int main(int argc, char* argv[]) {
                                     // STX and ETX fournd, extract the string between STX and ETX
                                     std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);
                                     std::cout << "Extracted command: " << extracted << std::endl;
-                                    Commands(connection.sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                                    serverCommand(connection.sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
-                                    // Neither STX not found or ETX not found or neither then this likely is a client command
-                                    Commands(connection.sock, &openSockets, &maxfds, buffer, groupID, myServer); // Command 
+                                    // STX not found or ETX not found or neither then treat it as a client command
+                                    std::cout << buffer << "<--- buffer" << std::endl;
+                                    clientCommand(connection.sock, &openSockets, &maxfds, buffer, groupID, myServer);
                                 }
                             
                         }
                     }
                 }
+                // Remove the client/server
+                for(int sock : closedSockets) {
+                    connectionsList.erase(
+                        std::remove_if(connectionsList.begin(), connectionsList.end(), 
+                                    [sock](const Connection& c) { return c.sock == sock; }), 
+                        connectionsList.end());
+                }
+                closedSockets.clear();  // Clear for the next iteration
             }
         }
     }
