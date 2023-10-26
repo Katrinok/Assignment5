@@ -308,7 +308,7 @@ int main(int argc, char* argv[]) {
                 maxfds = std::max(maxfds, clientSock) ;
 
                 // create a new client to store information.
-                connectionsList[clientSock] = new Connection(clientSock);
+                // connectionsList[clientSock] = new Connection(clientSock);
 
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};

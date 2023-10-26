@@ -230,7 +230,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     }
     else {
-        std::cout << "Received response after connection: " << responseBuffer << std::endl;
+        std::cout << "Received response after connection: " << responseBuffer <<"Kemur þetta allt hér" <<std::endl;
     }
     
     return serverSock;
