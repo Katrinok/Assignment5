@@ -260,7 +260,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     } 
     //Hér sendum við queryservers
-    send_queryservers(serverSock, groupID, myServer);
+    send_queryservers(serverSock, groupID, myServer); // Send QUERYSERVERS to the server-
 
     char responseBuffer[2048]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
