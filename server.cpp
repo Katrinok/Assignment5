@@ -23,8 +23,8 @@
 #include <list>
 #include <string>
 #include <cstring>
-#include <mutex>
-#include <chrono>
+//#include <mutex>
+//#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -90,7 +90,7 @@ class CuteServer {
 // (indexed on socket no.) sacrificing memory for speed.
 
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
-std::map<int, CuteServer*> queued_servers; // Lookup table for per server in queue
+//std::map<int, CuteServer*> queued_servers; // Lookup table for per server in queue
 
 // Open socket for specified port.
 //
@@ -133,8 +133,8 @@ int open_socket(int portno) {
 
     sk_addr.sin_family      = AF_INET;
     //sk_addr.sin_addr.s_addr = INADDR_ANY;
-    sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
-    //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
+    //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
+    sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
 
     // Bind to socket to listen for connections from clients
@@ -331,7 +331,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         *maxfds = std::max(*maxfds, socket);
     
     }
-    if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
+    /*if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
         std::vector<std::string> servers_tokens;
         std::string servers_token;
@@ -343,12 +343,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         /*for(int i = 1; i < servers_tokens.size(); i++) {
             
-        }*/
+        }
 
         std:: string response = queryserversResponse(from_groupID, server);
         std::cout << response << std::endl; // DEBUG
     
     }
+*/
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
   {
      connectionsList[clientSocket]->groupID = tokens[1];
@@ -419,8 +420,8 @@ int main(int argc, char* argv[]) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
-    myServer myServer("130.208.243.61", this_port);
-    //myServer myServer("127.0.0.1", this_port);
+    //myServer myServer("130.208.243.61", this_port);
+    myServer myServer("127.0.0.1", this_port);
 
     bool finished;
     int listenSock;                 // Socket for connections to server
@@ -526,15 +527,7 @@ int main(int argc, char* argv[]) {
                                 std::cout << buffer << std::endl;
         
                                 if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
-                                    /*// STX and ETX found, extract the string between STX and ETX
-                                    std::string extracted(STX_ptr + 1, ETX_ptr - STX_ptr - 1);*/
-
-                                    //int extractedLength = ETX_ptr - STX_ptr - 1;// Determine the length of the extracted string
-                                    //char extracted[extractedLength + 1];// Create a char array of the required size plus one for the null terminator
-                                    //strncpy(extracted, STX_ptr + 1, extractedLength);// Copy the portion of the original char buffer to this new array
-                                    //extracted[extractedLength] = '\0';// Null-terminate the new array
-
-                                    //std::cout << "Extracted command: " << extracted << std::endl;
+                                    // STX and ETX found, extract the string between STX and ETX
                                     std::string extracted = extractCommand(buffer);
                                     clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
