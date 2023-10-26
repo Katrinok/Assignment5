@@ -150,25 +150,17 @@ int open_socket(int portno) {
 // Close a client's connection, remove it from the client list, and
 // tidy up select sockets afterwards.
 void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
-
-    printf("Client closed connection: %d\n", clientSocket);
-
      // If this client's socket is maxfds then the next lowest
      // one has to be determined. Socket fd's can be reused by the Kernel,
      // so there aren't any nice ways to do this.
-
     close(clientSocket);      
-
     if(*maxfds == clientSocket) {
         for(auto const& p : connectionsList) {
             *maxfds = std::max(*maxfds, p.second->sock);
         }
     }
-
     // And remove from the list of open sockets.
-
     FD_CLR(clientSocket, openSockets);
-
 }
 
 std::string extractCommand(const char* buffer) {
@@ -221,6 +213,7 @@ void keepAliveFunction() {
             // Send the keepalive message to each connection. 
             // Replace the message below with whatever your protocol needs.
             std::string keepaliveMessage = "KEEPALIVE";
+            std::cout << "Sending keepalive to " << connection->groupID << std::endl;
             send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
         }
         mtx.unlock();
@@ -289,8 +282,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error sending SERVERS message");
     }
     std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
-
-
     return serverSock;
 }
 
@@ -339,7 +330,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             servers_tokens.push_back(servers_token);
         }
         
-        for(auto i = 1u; i < servers_tokens.size(); i++) {
+        for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
             std::cout << "JÆJAAAAA" << std::endl; //DEBUG  
             std::cout << servers_tokens[i] << std::endl; //DEBUG  
         }
@@ -353,10 +344,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         send(server_socket, msg.c_str(), msg.length(),0);
         std::cout << "Message sent was" << msg << std::endl;
-    } 
-    
-    
-    else {
+    } else {
         std::cout << "Unknown command:" << buffer << std::endl;
     }   
 }
@@ -455,6 +443,7 @@ int main(int argc, char* argv[]) {
                         newConnection->groupID = groupID;  // Set the group ID in the Connection instance
                         newConnection->isServer = false;
                         connectionsList[clientSock] = newConnection;
+                        printf("Client connected on server: %d\n, with id: %s", clientSock, newConnection->groupID.c_str());
                         
 
                     } else if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
@@ -464,11 +453,13 @@ int main(int argc, char* argv[]) {
                         std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
                         connectionsList[clientSock] = newConnection;
                         // HÉR ÞARF AÐ SVARA MEÐ SERVERS
+                        printf("Client connected on server: %d\n, with id: %s", clientSock, newConnection->groupID.c_str());
                     }
+                    
                 }
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
-                printf("Client connected on server: %d\n", clientSock);
+                
             }
             // Now check for commands from clients
             std::list<Connection *> disconnectedServers;  
@@ -482,7 +473,7 @@ int main(int argc, char* argv[]) {
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
-                            std::cout << "Client closed connection: " << connection << std::endl;
+                            std::cout << "Client closed connection: " << connection->sock << std::endl;
 
                         } else {
                             // We don't check for -1 (nothing received) because select()
