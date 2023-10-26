@@ -71,3 +71,21 @@
         return -1;
     }
     std::cout << "QUERYSERVERS sent: " << message << std::endl;
+
+
+    // Get the response, the servers that the other server is connected to
+    for(int i = 1; i < tokens.size(); i++) {
+            std::vector<std::string> server_tokens;
+            std::stringstream stream(tokens[i]);
+            std::string server_token;
+            while(std::getline(stream, server_token, ';')) {
+                server_tokens.push_back(server_token);
+            }
+            std::string groupID = server_tokens[0];
+            std::string ip_address = server_tokens[1];
+            int port = std::stoi(server_tokens[2]);
+            int socket =  connectToServer(ip_address, port, groupID, server);
+            FD_SET(socket, openSockets);
+            // And update the maximum file descriptor
+            *maxfds = std::max(*maxfds, socket);
+        }

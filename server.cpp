@@ -23,7 +23,8 @@
 #include <list>
 #include <string>
 #include <cstring>
-
+#include <mutex>
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -66,11 +67,19 @@ class Connection {
     friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
-std::ostream& operator<<(std::ostream& os, const Connection& connection)
-{
-    os << connection.groupID << "," << connection.ip_address << "," << connection.port; // server obj as GROUP_ID,IP,Port
-    return os;
-}
+// Simple class for handling queued servers that we have no et connected to
+class CuteServer {
+    public:
+    int sock;              // socket of client connection
+    std::string groupID;           // Limit length of name of client's user
+    std::string ip_address;
+    int port;
+
+    CuteServer(int socket) : sock(socket){} 
+
+    ~CuteServer(){}            // Virtual destructor defined for base class
+    friend std::ostream& operator<<(std::ostream& os, const CuteServer& queued_server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
+};
 
 // Note: map is not necessarily the most efficient method to use here,
 // especially for a server with large numbers of simulataneous connections,
@@ -80,6 +89,7 @@ std::ostream& operator<<(std::ostream& os, const Connection& connection)
 // (indexed on socket no.) sacrificing memory for speed.
 
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
+std::map<int, CuteServer*> queued_servers; // Lookup table for per server in queue
 
 // Open socket for specified port.
 //
@@ -200,6 +210,8 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
+
+
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
     int serverSock;
@@ -259,7 +271,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     if(send(serverSock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
-    std::cout << "SERVERS sent: " << queryservers << std::endl; //DEBUG
+    std::cout << "We send: " << queryservers << std::endl; //DEBUG
 
 
     return serverSock;
@@ -299,6 +311,24 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
+    
+    }
+    if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
+        // Save the servers in the response, the first one is the one that sent this command
+        std::vector<std::string> servers_tokens;
+        std::string servers_token;
+        std::stringstream servers_stream(buffer.substr(8));
+        std::cout << buffer.substr(8) << std::endl; //DEBUG
+        // Split command from client into tokens for parsing
+        while(std::getline(stream, servers_token, ';')) {
+            servers_tokens.push_back(servers_token);
+        }
+        /*for(int i = 1; i < servers_tokens.size(); i++) {
+            
+        }*/
+
+        std:: string response = queryserversResponse(from_groupID, server);
+        std::cout << response << std::endl; // DEBUG
     
     }
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
@@ -359,7 +389,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
       }
   }*/
     else {
-        std::cout << "Unknown command from client:" << buffer << std::endl;
+        std::cout << "Unknown command:" << buffer << std::endl;
     }
      
 }
@@ -414,7 +444,6 @@ int main(int argc, char* argv[]) {
 
         // Look at sockets and see which ones have something to be read()
         int n = select(maxfds + 1, &readSockets, NULL, &exceptSockets, NULL);
-        std::cout << "ennnnnnn " << n << std::endl; //DEBUG
         if(n < 0) {
             perror("select failed - closing down\n");
             finished = true;
@@ -450,25 +479,19 @@ int main(int argc, char* argv[]) {
                         Connection* newConnection = new Connection(clientSock);
                         newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
                         connectionsList[clientSock] = newConnection;
+                        // HÉR ÞARF AÐ SVARA MEÐ SERVERS
                     }
                 }
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
-                std::cout << n << std::endl;
                 printf("Client connected on server: %d\n", clientSock);
-                }
-                for(auto const& pair : connectionsList) {
-                        Connection *connection = pair.second;
-                        std::cout << connection << std::endl;}
+
                 // Now check for commands from clients
                 std::list<Connection *> disconnectedServers;  
                 while(n-- > 0) {
-                    std::cout << "HíHí" << std::endl; // Debug
                     for(auto const& pair : connectionsList) {
                         Connection *connection = pair.second;
-                        std::cout << "Aðalstopp" << std::endl; // Debug
                         if(FD_ISSET(connection->sock, &readSockets)) {
-                            std::cout << "Fyrsta stopp" << std::endl; // Debug
                             int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
                             // recv() == 0 means client has closed connection
                             if(commandBytes == 0) {
@@ -494,11 +517,9 @@ int main(int argc, char* argv[]) {
 
                                     //std::cout << "Extracted command: " << extracted << std::endl;
                                     std::string extracted = extractCommand(buffer);
-                                    std::cout << "Extracted command: " << extracted << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
                                     // STX not found or ETX not found or neither then treat it as a client command
-                                    std::cout << "Annað stopp" << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                                 }
                             }
@@ -511,4 +532,4 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-
+}
