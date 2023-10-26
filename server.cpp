@@ -464,6 +464,9 @@ int main(int argc, char* argv[]) {
                 // Temporary buffer to read the initial message
                 char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
+
+
+                
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
                     std::cout << tempBuffer << std::endl;
@@ -480,10 +483,18 @@ int main(int argc, char* argv[]) {
                     } else { 
                         std::string extracted = extractCommand(tempBuffer);
                         if(extracted.substr(0, 13) == "QUERYSERVERS,") {
+                            std::vector<std::string> tokens;
+                            std::stringstream stream(extracted);
+                            std::string token;
+
+                            // Split command from client into tokens for parsing
+                            while(std::getline(stream, token, ',')) {
+                                tokens.push_back(token);
+    }
                             std::cout << "Förum við hingað" << std::endl;
-                            std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-                            std::cout << "Received command from " << receivedGroupID << "    " << receivedGroupID.compare("38") << std::endl;
-                            if(receivedGroupID.compare("38") == 0) { //block group 38°
+                            std::string receivedGroupID = tokens[1];  // Extract everything after "QUERYSERVERS,"
+                            std::cout << "Received command from " << receivedGroupID << std::endl;
+                            if(tokens[1].find("38") == std::string::npos) { //block group 38°
                                 std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
                                 Connection* newConnection = new Connection(clientSock);
                                 newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
