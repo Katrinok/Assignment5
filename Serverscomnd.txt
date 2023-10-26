@@ -33,7 +33,7 @@
 
 
 
-        char responseBuffer[1025]; // Buffer to hold the response
+    char responseBuffer[1025]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
 
     int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
