@@ -414,7 +414,7 @@ int main(int argc, char* argv[]) {
 
         // Look at sockets and see which ones have something to be read()
         int n = select(maxfds + 1, &readSockets, NULL, &exceptSockets, NULL);
-
+        std::cout << "ennnnnnn " << n << std::endl; //DEBUG
         if(n < 0) {
             perror("select failed - closing down\n");
             finished = true;
@@ -451,10 +451,10 @@ int main(int argc, char* argv[]) {
                         newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
                         connectionsList[clientSock] = newConnection;
                     }
-
+                }
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
-
+                std::cout << n << std::endl;
                 printf("Client connected on server: %d\n", clientSock);
                 }
                 for(auto const& pair : connectionsList) {
@@ -511,4 +511,4 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-}
+
