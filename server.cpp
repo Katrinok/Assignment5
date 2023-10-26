@@ -162,6 +162,27 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
     FD_CLR(clientSocket, openSockets);
 }
 
+std::vector<std::string> extractMultiCommands(const char* buffer) {
+    std::vector<std::string> commands;
+    const char STX = 0x02;  // Start of command
+    const char ETX = 0x03;  // End of command
+    const char* STX_ptr = strchr(buffer, STX);
+    const char* ETX_ptr = strchr(buffer, ETX);
+
+    while (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
+        int extractedLength = ETX_ptr - STX_ptr - 1; // Determine the length of the extracted string
+        commands.push_back(std::string(STX_ptr + 1, extractedLength)); // Push the message between STX and ETX to the vector
+        
+        // Move pointers to search for the next STX-ETX pair
+        STX_ptr = strchr(ETX_ptr + 1, STX);
+        ETX_ptr = strchr(STX_ptr, ETX);
+    }
+
+    return commands;
+}
+
+
+
 std::string extractCommand(const char* buffer) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
@@ -272,19 +293,24 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
         }
 
-    std::cout << "Received response after connection: " << responseBuffer <<std::endl;
-    std::string receivedResponse = extractCommand(responseBuffer);   // Convert char array to string
+    std::cout << "Received response after connection: " << responseBuffer << std::endl;
+    std::vector<std::string> receivedResponses = extractMultiCommands(responseBuffer);
 
-    if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
-        // Now we should receive QUERYSERVERS response with the group id from the newly connected server
-        std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-        create_connection(serverSock, receivedGroupID, ip_address, port);//Create a connection from the socket
-        std::string servers_response = queryserversResponse(groupID, myServer);// Put together the SERVERS response 
-        servers_response = wrapWithSTXETX(servers_response);// Wrap it in STX and ETX
-        if(send(serverSock, servers_response.c_str(), servers_response.length(), 0) < 0) {
-            perror("Error sending SERVERS message");
+
+    for(const auto& receivedResponse : receivedResponses) {
+        if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
+            // Now we should receive QUERYSERVERS response with the group id from the newly connected server
+            std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
+            create_connection(serverSock, receivedGroupID, ip_address, port);// Create a connection from the socket
+            std::string servers_response = queryserversResponse(groupID, myServer); // Put together the SERVERS response 
+            servers_response = wrapWithSTXETX(servers_response); // Wrap it in STX and ETX
+            if(send(serverSock, servers_response.c_str(), servers_response.length(), 0) < 0) {
+                perror("Error sending SERVERS message");
+            }
         }
-    }
+    // Handle other command types here, e.g.
+    // else if(receivedResponse.substr(0, ...) == "OTHERCOMMAND,") { ... }
+}
     return serverSock;
 }
 
