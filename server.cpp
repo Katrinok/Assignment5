@@ -505,45 +505,47 @@ int main(int argc, char* argv[]) {
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
                 printf("Client connected on server: %d\n", clientSock);
+            }
+            // Now check for commands from clients
+            std::list<Connection *> disconnectedServers;  
+            while(n-- > 0) {
+                memset(buffer, 0, sizeof(buffer));
+                for(auto const& pair : connectionsList) {
+                    std::cout << "Fer ég hingað inn lol" << std::endl; //DEBUG
+                    Connection *connection = pair.second;
+                    if(FD_ISSET(connection->sock, &readSockets)) {
+                        std::cout << "Kemst ég hingað eða" << std::endl;
+                        int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+                        // recv() == 0 means client has closed connection
+                        if(commandBytes == 0) {
+                            disconnectedServers.push_back(connection);
+                            closeConnection(connection->sock, &openSockets, &maxfds);
+                            std::cout << "Client closed connection: " << connection << std::endl;
 
-                // Now check for commands from clients
-                std::list<Connection *> disconnectedServers;  
-                while(n-- > 0) {
-                    for(auto const& pair : connectionsList) {
-                        Connection *connection = pair.second;
-                        if(FD_ISSET(connection->sock, &readSockets)) {
-                            int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
-                            // recv() == 0 means client has closed connection
-                            if(commandBytes == 0) {
-                                disconnectedServers.push_back(connection);
-                                closeConnection(connection->sock, &openSockets, &maxfds);
-                                std::cout << "Client closed connection: " << connection << std::endl;
-
+                        } else {
+                            // We don't check for -1 (nothing received) because select()
+                            // only triggers if there is something on the socket for us.
+                            char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
+                            char* ETX_ptr = strchr(buffer, ETX);
+                            std::cout << buffer << std::endl;
+    
+                            if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
+                                // STX and ETX found, extract the string between STX and ETX
+                                std::string extracted = extractCommand(buffer);
+                                clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                             } else {
-                                // We don't check for -1 (nothing received) because select()
-                                // only triggers if there is something on the socket for us.
-                                char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
-                                char* ETX_ptr = strchr(buffer, ETX);
-                                std::cout << buffer << std::endl;
-        
-                                if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
-                                    // STX and ETX found, extract the string between STX and ETX
-                                    std::string extracted = extractCommand(buffer);
-                                    clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
-                                } else {
-                                    // STX not found or ETX not found or neither then treat it as a client command
-                                    std::cout << "Fer ég hingað inn" << std::endl; //DEBUG
-                                    clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
-                                }
+                                // STX not found or ETX not found or neither then treat it as a client command
+                                std::cout << "Fer ég hingað inn" << std::endl; //DEBUG
+                                clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                             }
                         }
                     }
-                    // Remove client from the clients list
-                    for(auto const& c : disconnectedServers)
-                        connectionsList.erase(c->sock);
                 }
+                // Remove client from the clients list
+                for(auto const& c : disconnectedServers)
+                    connectionsList.erase(c->sock);
             }
         }
     }
-    //keepAliveThread.join();
 }
+    //keepAliveThread.join();
