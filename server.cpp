@@ -122,8 +122,8 @@ int open_socket(int portno) {
 
     sk_addr.sin_family      = AF_INET;
     //sk_addr.sin_addr.s_addr = INADDR_ANY;
-    //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
-    sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
+    sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
+    //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
 
     // Bind to socket to listen for connections from clients
@@ -371,8 +371,8 @@ int main(int argc, char* argv[]) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
-    //myServer myServer("130.208.243.61", this_port);
-    myServer myServer("127.0.0.1", this_port);
+    myServer myServer("130.208.243.61", this_port);
+    //myServer myServer("127.0.0.1", this_port);
 
     bool finished;
     int listenSock;                 // Socket for connections to server
