@@ -271,9 +271,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         close(serverSock);
         return -1;
     }
-    else {
-        std::cout << "Received response after connection: " << responseBuffer <<std::endl;
-    }
+    std::cout << "Received response after connection: " << responseBuffer <<std::endl;
     std::string receivedResponse = extractCommand(responseBuffer);   // Convert char array to string
 
     if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
@@ -284,6 +282,13 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         newConnection->port = port;
         newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
         connectionsList[serverSock] = newConnection;
+        // Put together the SERVERS response 
+        std::string servers_response = queryserversResponse(groupID, myServer);
+        // Wrap it in STX and ETX
+        servers_response = wrapWithSTXETX(servers_response);
+        if(send(serverSock, servers_response.c_str(), servers_response.length(), 0) < 0) {
+            perror("Error sending SERVERS message");
+        }
     }
 
     return serverSock;
@@ -475,6 +480,7 @@ int main(int argc, char* argv[]) {
                     } else { 
                         std::string extracted = extractCommand(tempBuffer);
                         if(extracted.substr(0, 13) == "QUERYSERVERS,") {
+                            std::cout << "Förum við hingað" << std::endl;
                             std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
                             if(receivedGroupID.compare("38") == 0) { //block group 38
                                 Connection* newConnection = new Connection(clientSock);
