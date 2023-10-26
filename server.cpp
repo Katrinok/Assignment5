@@ -132,13 +132,12 @@ int open_socket(int portno) {
     memset(&sk_addr, 0, sizeof(sk_addr));
 
     sk_addr.sin_family      = AF_INET;
-    //sk_addr.sin_addr.s_addr = INADDR_ANY;
-    sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
+    sk_addr.sin_addr.s_addr = INADDR_ANY;
+    //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
     //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
 
     // Bind to socket to listen for connections from clients
-
     if(bind(sock, (struct sockaddr *)&sk_addr, sizeof(sk_addr)) < 0) {
         perror("Failed to bind to socket:");
         return(-1);
@@ -166,10 +165,8 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
 std::string extractCommand(const char* buffer) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
-    
     const char* STX_ptr = strchr(buffer, STX);
     const char* ETX_ptr = strchr(buffer, ETX);
-
     // Check if both STX and ETX are present, and STX appears before ETX
     if(STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
         int extractedLength = ETX_ptr - STX_ptr - 1;   // Determine the length of the extracted string
@@ -191,7 +188,6 @@ std::string wrapWithSTXETX(const std::string& payload) {
 // Get the response for QUERYSERVERS
 std::string queryserversResponse(const std::string& fromgroupID, myServer myServer) { 
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
-
     for(const auto& pair : connectionsList) {
         Connection* connection = pair.second;
         if (connection->isServer) {
@@ -205,7 +201,6 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
 void keepAliveFunction() {
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(60)); // Sleep for 60 seconds
-
         // Lock the mutex to safely iterate over connectionsList
         mtx.lock();
         for(auto const& pair : connectionsList) {
@@ -215,7 +210,8 @@ void keepAliveFunction() {
             if(connection->isServer){
                 std::string keepaliveMessage = "KEEPALIVE";
                 std::cout << "Sending keepalive to " << connection->groupID << std::endl;
-                send(connection->sock, wrapWithSTXETX(keepaliveMessage).c_str(), keepaliveMessage.size(), 0);
+                keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
+                send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
             } 
         }
         mtx.unlock();
@@ -228,9 +224,17 @@ void send_queryservers(int server_sock, std::string groupID, myServer myServer) 
     if(send(server_sock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
-    std::cout << "We send: " << queryservers <<"\n"<< std::endl; //DEBUG
+    std::cout << "After Connecting/Accepting we send: " << queryservers <<"\n"<< std::endl; //DEBUG
 }
 
+// Creates a new connection from the socket and adds it to the connectionsList
+void create_connection(int serverSock, std::string receivedGroupID, std::string ip_address, int port) {
+        Connection* newConnection = new Connection(serverSock);
+        newConnection->ip_address = ip_address;
+        newConnection->port = port;
+        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+        connectionsList[serverSock] = newConnection;
+}
 
 
 // A function that makes the server connect to another server
@@ -258,35 +262,25 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     //Hér sendum við queryservers
     send_queryservers(serverSock, groupID, myServer);
 
-    char responseBuffer[1025]; // Buffer to hold the response
+    char responseBuffer[2048]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
 
-    int bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0); // Receive the data
-    if(bytesRead < 0) {
-        perror("Error receiving response from server");
+    int bytesRead;
+    if ((bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0)) <= 0) {
+        perror(bytesRead == 0 ? "Server closed connection after sending QUERYSERVERS" : "Error receiving response from server");
         close(serverSock);
         return -1;
-    }
-    else if(bytesRead == 0) {
-        std::cout << "Server closed connection after sending QUERYSERVERS" << std::endl;
-        close(serverSock);
-        return -1;
-    }
+        }
+
     std::cout << "Received response after connection: " << responseBuffer <<std::endl;
     std::string receivedResponse = extractCommand(responseBuffer);   // Convert char array to string
 
     if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
         // Now we should receive QUERYSERVERS response with the group id from the newly connected server
         std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-        Connection* newConnection = new Connection(serverSock);
-        newConnection->ip_address = ip_address;
-        newConnection->port = port;
-        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
-        connectionsList[serverSock] = newConnection;
-        // Put together the SERVERS response 
-        std::string servers_response = queryserversResponse(groupID, myServer);
-        // Wrap it in STX and ETX
-        servers_response = wrapWithSTXETX(servers_response);
+        create_connection(serverSock, receivedGroupID, ip_address, port);//Create a connection from the socket
+        std::string servers_response = queryserversResponse(groupID, myServer);// Put together the SERVERS response 
+        servers_response = wrapWithSTXETX(servers_response);// Wrap it in STX and ETX
         if(send(serverSock, servers_response.c_str(), servers_response.length(), 0) < 0) {
             perror("Error sending SERVERS message");
         }
