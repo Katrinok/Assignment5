@@ -294,7 +294,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         }
 
     std::cout << "Received response after connection: " << responseBuffer << std::endl;
-    std::vector<std::string> receivedResponses = extractMultiCommands(responseBuffer);
+    std::vector<std::string> receivedResponses = extractMultiCommands(responseBuffer); 
 
 
     for(const auto& receivedResponse : receivedResponses) {
