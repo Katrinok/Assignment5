@@ -482,7 +482,9 @@ int main(int argc, char* argv[]) {
                         if(extracted.substr(0, 13) == "QUERYSERVERS,") {
                             std::cout << "Förum við hingað" << std::endl;
                             std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-                            if(receivedGroupID.compare("38") == 0) { //block group 38
+                            std::cout << "Received command from " << receivedGroupID << "    " << receivedGroupID.compare("38") << std::endl;
+                            if(receivedGroupID.compare("38") == 0) { //block group 38°
+                                std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
                                 Connection* newConnection = new Connection(clientSock);
                                 newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
                                 std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
