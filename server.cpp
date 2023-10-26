@@ -81,7 +81,7 @@ std::ostream& operator<<(std::ostream& os, const Connection& connection)
 std::vector<Connection> connectionsList; // A global list of servers
 
 // Get the response for QUERYSERVERS
-std::string QueryserversResponse(const std::string& fromgroupID, myServer myServer)
+std::string queryserversResponse(const std::string& fromgroupID, myServer myServer)
 { 
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
 
@@ -304,22 +304,32 @@ void clientCommand(int clientSocket, fd_set *openSockets, int *maxfds, std::stri
      
 }
 
-void serverCommand(int ServerSocket, fd_set *openSockets, int *maxfds, 
-                  std::string buffer, std::string groupID, myServer Server) {
+void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
+                  std::string buffer, std::string from_groupID, myServer server) {
     std::vector<std::string> tokens;
     std::stringstream stream(buffer);
     std::string token;
     
-    // Split Server command from client into tokens for parsing
-    
-
+    // Split Server command into tokens for parsing
     while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
     }
 
+    // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected server
     if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) {    
-        
+        // Put together the SERVERS response 
+        std::string servers_response = queryserversResponse(from_groupID, server);
+        // Wrap it in STX and ETX
+        servers_response = wrapWithSTXETX(servers_response);
+
+        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+            perror("Error sending QUERYSERVERS message");
+            return;
+        }
+        std::cout << "QUERYSERVERS sent: " << servers_response << std::endl;
     }
+
+    // If we get SERVERS 
 }
 
 
@@ -410,7 +420,10 @@ int main(int argc, char* argv[]) {
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
 
-               printf("Client connected on server: %d\n", clientSock);
+                for(auto const& connection : connectionsList) {
+                    std::cout << connection.groupID << std::endl;
+                }
+                printf("Client connected on server: %d\n", clientSock);
             }
             // Now check for commands from client or servers
             std::vector<int> closedSockets;
