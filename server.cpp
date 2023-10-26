@@ -286,6 +286,16 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
     }
+    if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
+        std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
+        std::string ip_address = tokens[1];
+        int port = std::stoi(tokens[2]);
+        int socket =  connectToServer(ip_address, port, from_groupID, server);
+        FD_SET(socket, openSockets);
+        // And update the maximum file descriptor
+        *maxfds = std::max(*maxfds, socket);
+    
+    }
   /*if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 2))
   {
      connectionsList[clientSocket]->groupID = tokens[1];
@@ -343,10 +353,9 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
           }
       }
   }*/
-  else
-  {
-      std::cout << "Unknown command from client:" << buffer << std::endl;
-  }
+    else {
+        std::cout << "Unknown command from client:" << buffer << std::endl;
+    }
      
 }
 
@@ -426,6 +435,7 @@ int main(int argc, char* argv[]) {
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         // create a new client to store information.
                         connectionsList[clientSock] = new Connection(clientSock);
+                        
 
                     } else if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
                         std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
@@ -446,9 +456,10 @@ int main(int argc, char* argv[]) {
                         Connection *connection = pair.second;
 
                         if(FD_ISSET(connection->sock, &readSockets)) {
+                            std::cout << "Fyrsta stopp" << std::endl; // Debug
                             int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
                             // recv() == 0 means client has closed connection
-                            if(recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT) == 0) {
+                            if(commandBytes == 0) {
                                 disconnectedServers.push_back(connection);
                                 closeConnection(connection->sock, &openSockets, &maxfds);
                                 std::cout << "Client closed connection: " << connection << std::endl;
@@ -471,10 +482,11 @@ int main(int argc, char* argv[]) {
 
                                     //std::cout << "Extracted command: " << extracted << std::endl;
                                     std::string extracted = extractCommand(buffer);
+                                    std::cout << "Extracted command: " << extracted << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                                 } else {
                                     // STX not found or ETX not found or neither then treat it as a client command
-                                    std::cout << buffer << "<--- buffer" << std::endl;
+                                    std::cout << "Annað stopp" << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                                 }
                             }
