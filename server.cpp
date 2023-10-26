@@ -440,7 +440,9 @@ int main(int argc, char* argv[]) {
                     std::string receivedResponse = tempBuffer;
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         // create a new client to store information.
-                        connectionsList[clientSock] = new Connection(clientSock);
+                        Connection* newConnection = new Connection(clientSock);
+                        newConnection->groupID = groupID;  // Set the group ID in the Connection instance
+                        connectionsList[clientSock] = newConnection;
                         
 
                     } else if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
@@ -461,6 +463,7 @@ int main(int argc, char* argv[]) {
                 // Now check for commands from clients
                 std::list<Connection *> disconnectedServers;  
                 while(n-- > 0) {
+                    std::cout << "HíHí" << std::endl; // Debug
                     for(auto const& pair : connectionsList) {
                         Connection *connection = pair.second;
                         std::cout << "Aðalstopp" << std::endl; // Debug
