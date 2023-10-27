@@ -347,6 +347,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
 
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
+    //also if the ip anf port is sent too
     if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) {
         std::cout << "This is valid, proceed to receive servers" << std::endl; // DEBUG    
         // Put together the SERVERS response 
@@ -361,20 +362,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         /// tEST
 
         
-    } /*else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) { //also if the ip anf port is sent too
-        // Put together the SERVERS response 
-        std::string servers_response = queryserversResponse(from_groupID, server);
-        // Wrap it in STX and ETX
-        servers_response = wrapWithSTXETX(servers_response);
-        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
-            perror("Error sending SERVERS message");
-            return;
-        }
-        std::cout << "SERVERS sent: " << servers_response << std::endl;
-
-        
-
-    } */else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
+    } else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
@@ -529,18 +517,18 @@ int main(int argc, char* argv[]) {
                 char handshakeBuffer[1025];
                 memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
                 int handshakeBytes = recv(clientSock, handshakeBuffer, sizeof(handshakeBuffer) - 1, 0);  // This time, we block until we get a response
-
+                std::cout << "Print HandshakeBuffer: " << handshakeBuffer << std::endl; //DEBUG
                 if(handshakeBytes > 0 && strcmp(handshakeBuffer, "SECRET_KATRIN") == 0) {
                     std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
                     create_connection(clientSock, groupID, myServer.ip_address, myServer.port); // Create a connection from the socket
                     printf("Our Client is created on server, with id: %s\n", groupID.c_str());
                 } else {
-                    
+                    std::string extracted = extractCommand(handshakeBuffer);
+                    if(extracted.substr(0, 13) == "QUERYSERVERS,") {
+                        Connection* newConnection = new Connection(clientSock);
+                        connectionsList[clientSock] = newConnection;
+                    }
                 }
-
-                // Create a new connection for this client
-                Connection* newConnection = new Connection(clientSock);
-                connectionsList[clientSock] = newConnection;
 
                 // Temporary buffer to read the initial message
                 /*char tempBuffer[1024] = {0};
