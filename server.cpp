@@ -281,7 +281,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     } 
     //Hér sendum við queryservers
-    send_queryservers(serverSock, groupID, myServer); // Send QUERYSERVERS to the server-
+    /*send_queryservers(serverSock, groupID, myServer); // Send QUERYSERVERS to the server-
 
     char responseBuffer[2048]; // Buffer to hold the response
     memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
@@ -310,7 +310,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         }
     // Handle other command types here, e.g.
     // else if(receivedResponse.substr(0, ...) == "OTHERCOMMAND,") { ... }
-}
+}*/ connectionsList[serverSock] = new Connection(serverSock);
     return serverSock;
 }
 
@@ -329,8 +329,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
 
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
-    if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2 ) {    
-        // Put together the SERVERS response 
+    if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) {    
+       /* // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
         // Wrap it in STX and ETX
         servers_response = wrapWithSTXETX(servers_response);
@@ -339,7 +339,11 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
-    } else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) { //also if the ip anf port is sent too
+        /// TEST
+    */  send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server AGAIN
+        /// tEST
+        std::cout << "This is valid, proceed to receive servers" << std::endl; // DEBUG
+    } /*else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) { //also if the ip anf port is sent too
         // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
         // Wrap it in STX and ETX
@@ -350,18 +354,23 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
 
-    } else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
+        
+
+    } */else if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, from_groupID, server);
+        //// Bætti þessu við tók úr connect to server fallinu
+        send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+        ///////
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
     
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
-        
+        std::cout << "Þýðir að ég fékk servers og fer hingað inn"<< std::endl; // DEBUG
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
@@ -547,8 +556,11 @@ int main(int argc, char* argv[]) {
                 memset(buffer, 0, sizeof(buffer));
                 for(auto const& pair : connectionsList) {
                     Connection *connection = pair.second;
+                    // Check which client has sent us something
+                    std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
-                        int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+                        int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
+                        std::cout << "Fyrsti: " << connection->groupID << ": " << buffer << std::endl;
                         // recv() == 0 means client has closed connection
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
@@ -564,11 +576,11 @@ int main(int argc, char* argv[]) {
                             if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
                                 // STX and ETX found, extract the string between STX and ETX
                                 std::string extracted = extractCommand(buffer);
-                                std::cout << "Received command from " << connection->groupID << ": " << extracted <<"\n"<< std::endl;
+                                std::cout << "Annar: " << connection->groupID << ": " << extracted <<"\n"<< std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                             } else {
                                 // STX not found or ETX not found or neither then treat it as a client command
-                                std::cout << "Received command from " << connection->groupID << ": " << buffer <<"\n" << std::endl;
+                                std::cout << "Þriðji: " << connection->groupID << ": " << buffer <<"\n" << std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                             }
                         }
