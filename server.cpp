@@ -82,6 +82,15 @@ class CuteServer {
     friend std::ostream& operator<<(std::ostream& os, const CuteServer& queued_server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
+// Sem ætti að búa til connection úr tokeni
+Connection parseTokenToConnection(const std::string& token, int socket) {
+    std::stringstream ss(token);
+    Connection result(socket);
+    std::getline(ss, result.groupID, ',');
+    std::getline(ss, result.ip_address, ',');
+    ss >> result.port;
+    return result;
+}
 // Note: map is not necessarily the most efficient method to use here,
 // especially for a server with large numbers of simulataneous connections,
 // where performance is also expected to be an issue.
@@ -250,12 +259,19 @@ void send_queryservers(int server_sock, std::string groupID, myServer myServer) 
 
 // Creates a new connection from the socket and adds it to the connectionsList
 void create_connection(int serverSock, std::string receivedGroupID, std::string ip_address, int port) {
-        Connection* newConnection = new Connection(serverSock);
-        newConnection->ip_address = ip_address;
-        newConnection->port = port;
-        newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
-        connectionsList[serverSock] = newConnection;
+    // Check if the socket already has an associated connection.
+    if (connectionsList.find(serverSock) != connectionsList.end()) {
+        // Close the existing connection and free memory (if needed).
+        delete connectionsList[serverSock];  // free memory
+    }
+
+    Connection* newConnection = new Connection(serverSock);
+    newConnection->ip_address = ip_address;
+    newConnection->port = port;
+    newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+    connectionsList[serverSock] = newConnection;
 }
+
 
 
 // A function that makes the server connect to another server
@@ -310,7 +326,9 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         }
     // Handle other command types here, e.g.
     // else if(receivedResponse.substr(0, ...) == "OTHERCOMMAND,") { ... }
-}*/ connectionsList[serverSock] = new Connection(serverSock);
+}*/ 
+    
+    connectionsList[serverSock] = new Connection(serverSock);
     return serverSock;
 }
 
@@ -329,8 +347,9 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
 
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
-    if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) {    
-       /* // Put together the SERVERS response 
+    if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) {
+        std::cout << "This is valid, proceed to receive servers" << std::endl; // DEBUG    
+        // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
         // Wrap it in STX and ETX
         servers_response = wrapWithSTXETX(servers_response);
@@ -339,10 +358,9 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
-        /// TEST
-    */  send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server AGAIN
         /// tEST
-        std::cout << "This is valid, proceed to receive servers" << std::endl; // DEBUG
+
+        
     } /*else if(tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4) { //also if the ip anf port is sent too
         // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
@@ -362,29 +380,39 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, from_groupID, server);
         //// Bætti þessu við tók úr connect to server fallinu
-        send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+        //send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
         ///////
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
-    
+        send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
         std::cout << "Þýðir að ég fékk servers og fer hingað inn"<< std::endl; // DEBUG
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
-        // Split command from client into tokens for parsing
+        // here we could mabey need to use BFS to connect to everyone
+
+        // After Servers take the first one and fill out the connection form
+        std::vector<std::string>::size_type count = 0;
         while(std::getline(servers_stream, servers_token, ';')) {
-            std::cout << servers_token << std::endl; //DEBUG  
-            servers_tokens.push_back(servers_token);
+            servers_tokens.push_back(servers_token); //Then push rest into the stream
+            if (count == 0) {
+                parseTokenToConnection(servers_tokens[0], server_socket);
+                std::cout << "Fyrsta tokenið er: " << servers_tokens[0] << std::endl; // DEBUG
+            }
+            count++; 
         }
-        
+         // Create a connection from the socket
         for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
-            std::cout << "JÆJAAAAA" << std::endl; //DEBUG  
-            std::cout << servers_tokens[i] << std::endl; //DEBUG  
+            std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
+        std::cout << "Stopp"<< std::endl; // DEBUG
     
+
+
     }else if (tokens[0].compare("LISTSERVERS") == 0) {
         std::cout << "List servers" << std::endl;
         std::string msg;
@@ -494,19 +522,32 @@ int main(int argc, char* argv[]) {
                 printf("accept***\n");
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
-
                 // And update the maximum file descriptor
                 maxfds = std::max(maxfds, clientSock) ;
+                send_queryservers(clientSock, groupID, myServer); // senda bara strax
+                
+                char handshakeBuffer[1025];
+                memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
+                int handshakeBytes = recv(clientSock, handshakeBuffer, sizeof(handshakeBuffer) - 1, 0);  // This time, we block until we get a response
 
-                // create a new client to store information.
-                // connectionsList[clientSock] = new Connection(clientSock);
+                if(handshakeBytes > 0 && strcmp(handshakeBuffer, "SECRET_KATRIN") == 0) {
+                    std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
+                    create_connection(clientSock, groupID, myServer.ip_address, myServer.port); // Create a connection from the socket
+                    printf("Our Client is created on server, with id: %s\n", groupID.c_str());
+                } else {
+                    
+                }
+
+                // Create a new connection for this client
+                Connection* newConnection = new Connection(clientSock);
+                connectionsList[clientSock] = newConnection;
 
                 // Temporary buffer to read the initial message
-                char tempBuffer[1024] = {0};
+                /*char tempBuffer[1024] = {0};
                 int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
+                std::cout << "Ef einhver reynir að connecta hingað: " << tempBuffer << std::endl;
                 if(bytesRead > 0) {
                     std::string receivedResponse = tempBuffer;
-                    std::cout << tempBuffer << std::endl;
                     if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
                         // create a new client to store information.
                         std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
@@ -517,8 +558,11 @@ int main(int argc, char* argv[]) {
                         printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
                         
 
-                    } else { 
+                    } else {
+                        send_queryservers(clientSock, groupID, myServer); // senda bara strax 
+
                         std::string extracted = extractCommand(tempBuffer);
+                        std::cout << "SKoða: " << extracted << std::endl;
                         if(extracted.substr(0, 13) == "QUERYSERVERS,") {
                             std::vector<std::string> tokens;
                             std::stringstream stream(extracted);
@@ -528,27 +572,24 @@ int main(int argc, char* argv[]) {
                             while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
                             }
-                            std::cout << "Förum við hingað" << std::endl;
                             std::string receivedGroupID = tokens[1];  // Extract everything after "QUERYSERVERS,"
-                            std::cout << "Received command from " << receivedGroupID << std::endl;
-                            if(tokens[1].find("38") == std::string::npos) { //block group 38
-                                send_queryservers(clientSock, groupID, myServer);
-                                std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
-                                Connection* newConnection = new Connection(clientSock);
-                                newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
-                                std::cout << "Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
-                                connectionsList[clientSock] = newConnection;
-                                // HÉR ÞARF AÐ SVARA MEÐ SERVERS 
-                                clientCommand(newConnection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
-                                printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
-                            }
+                            std::cout << "1. Received command from " << receivedGroupID << std::endl;
+                            //if(tokens[1].find("38") == std::string::npos) { //block group 38
+                            std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
+                            Connection* newConnection = new Connection(clientSock);
+                            newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
+                            std::cout << "2. Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
+                            connectionsList[clientSock] = newConnection;
+                            // HÉR ÞARF AÐ SVARA MEÐ SERVERS 
+                            clientCommand(newConnection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
+                            printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
+                           // }
                         }
                     }
                     
-                }
+                }*/
                 // Decrement the number of sockets waiting to be dealt with
                 n--;
-                
             }
             // Now check for commands from clients
             std::list<Connection *> disconnectedServers;  
@@ -557,11 +598,9 @@ int main(int argc, char* argv[]) {
                 for(auto const& pair : connectionsList) {
                     Connection *connection = pair.second;
                     // Check which client has sent us something
-                    std::cout << "Misstum af seinni pakkanum" << std::endl;
+                    //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
-                        std::cout << "Fyrsti: " << connection->groupID << ": " << buffer << std::endl;
-                        // recv() == 0 means client has closed connection
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
