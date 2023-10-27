@@ -46,9 +46,10 @@ struct myServer {
     std::string ip_address;
     int port;
     int sock;
+    std::string groupID;
 
     // Constructor
-    myServer(const std::string& ip, int p) : ip_address(ip), port(p) {}
+    myServer(const std::string& ip, int p, const std::string& ID) : ip_address(ip), port(p),groupID(ID) {}
 };
 
 // Simple class for handling connections from connections.
@@ -68,6 +69,10 @@ class Connection {
     friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
+
+
+
+
 // Simple class for handling queued servers that we have no et connected to
 class CuteServer {
     public:
@@ -82,15 +87,18 @@ class CuteServer {
     friend std::ostream& operator<<(std::ostream& os, const CuteServer& queued_server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
-// Sem ætti að búa til connection úr tokeni
-Connection parseTokenToConnection(const std::string& token, int socket) {
+
+std::vector<std::string> parseTokenToConnection(const std::string& token) {
     std::stringstream ss(token);
-    Connection result(socket);
-    std::getline(ss, result.groupID, ',');
-    std::getline(ss, result.ip_address, ',');
-    ss >> result.port;
+    std::vector<std::string> result(3); // This vector will hold groupID, ip_address, and port as strings
+
+    std::getline(ss, result[0], ',');  // groupID
+    std::getline(ss, result[1], ',');  // ip_address
+    ss >> result[2];                   // port
+
     return result;
 }
+
 // Note: map is not necessarily the most efficient method to use here,
 // especially for a server with large numbers of simulataneous connections,
 // where performance is also expected to be an issue.
@@ -127,7 +135,6 @@ int open_socket(int portno) {
 
     // Turn on SO_REUSEADDR to allow socket to be quickly reused after 
     // program exit.
-
     if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &set, sizeof(set)) < 0) {
         perror("Failed to set SO_REUSEADDR:");
     }
@@ -139,13 +146,11 @@ int open_socket(int portno) {
     }
 #endif
     memset(&sk_addr, 0, sizeof(sk_addr));
-
     sk_addr.sin_family      = AF_INET;
     sk_addr.sin_addr.s_addr = INADDR_ANY;
     //sk_addr.sin_addr.s_addr = inet_addr("130.208.243.61"); // laga seinna
     //sk_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); // laga seinna
     sk_addr.sin_port        = htons(portno);
-
     // Bind to socket to listen for connections from clients
     if(bind(sock, (struct sockaddr *)&sk_addr, sizeof(sk_addr)) < 0) {
         perror("Failed to bind to socket:");
@@ -238,7 +243,7 @@ void keepAliveFunction() {
             // Send the keepalive message to each connection. 
             // Replace the message below with whatever your protocol needs.
             if(connection->isServer){
-                std::string keepaliveMessage = "KEEPALIVE";
+                std::string keepaliveMessage = "KEEPALIVE,0";
                 std::cout << "Sending keepalive to " << connection->groupID << std::endl;
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
                 send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
@@ -248,17 +253,17 @@ void keepAliveFunction() {
     }
 }
 
-void send_queryservers(int server_sock, std::string groupID, myServer myServer) {
-    std::string queryservers = "QUERYSERVERS," + groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
+void send_queryservers(int server_sock, myServer myServer) {
+    std::string queryservers = "QUERYSERVERS," + myServer.groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
     queryservers = wrapWithSTXETX(queryservers);
     if(send(server_sock, queryservers.c_str(), queryservers.length(), 0) < 0) {
         perror("Error sending SERVERS message");
     }
-    std::cout << "After Connecting/Accepting we send: " << queryservers <<"\n"<< std::endl; //DEBUG
+    std::cout << "Sending Queryservers messege: " << queryservers <<"\n"<< std::endl; //DEBUG
 }
 
 // Creates a new connection from the socket and adds it to the connectionsList
-void create_connection(int serverSock, std::string receivedGroupID, std::string ip_address, int port) {
+void create_connection(int serverSock, std::string receivedGroupID, std::string ip_address, int port, bool isServer) {
     // Check if the socket already has an associated connection.
     if (connectionsList.find(serverSock) != connectionsList.end()) {
         // Close the existing connection and free memory (if needed).
@@ -267,6 +272,7 @@ void create_connection(int serverSock, std::string receivedGroupID, std::string 
 
     Connection* newConnection = new Connection(serverSock);
     newConnection->ip_address = ip_address;
+    newConnection->isServer = isServer;
     newConnection->port = port;
     newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
     connectionsList[serverSock] = newConnection;
@@ -297,38 +303,8 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     } 
     //Hér sendum við queryservers
-    /*send_queryservers(serverSock, groupID, myServer); // Send QUERYSERVERS to the server-
-
-    char responseBuffer[2048]; // Buffer to hold the response
-    memset(responseBuffer, 0, sizeof(responseBuffer)); // Clear the buffer
-
-    int bytesRead;
-    if ((bytesRead = recv(serverSock, responseBuffer, sizeof(responseBuffer)-1, 0)) <= 0) {
-        perror(bytesRead == 0 ? "Server closed connection after sending QUERYSERVERS" : "Error receiving response from server");
-        close(serverSock);
-        return -1;
-        }
-
-    std::cout << "Received response after connection: " << responseBuffer << std::endl;
-    std::vector<std::string> receivedResponses = extractMultiCommands(responseBuffer); 
-
-
-    for(const auto& receivedResponse : receivedResponses) {
-        if(receivedResponse.substr(0, 13) == "QUERYSERVERS,") {
-            // Now we should receive QUERYSERVERS response with the group id from the newly connected server
-            std::string receivedGroupID = receivedResponse.substr(13);  // Extract everything after "QUERYSERVERS,"
-            create_connection(serverSock, receivedGroupID, ip_address, port);// Create a connection from the socket
-            std::string servers_response = queryserversResponse(groupID, myServer); // Put together the SERVERS response 
-            servers_response = wrapWithSTXETX(servers_response); // Wrap it in STX and ETX
-            if(send(serverSock, servers_response.c_str(), servers_response.length(), 0) < 0) {
-                perror("Error sending SERVERS message");
-            }
-        }
-    // Handle other command types here, e.g.
-    // else if(receivedResponse.substr(0, ...) == "OTHERCOMMAND,") { ... }
-}*/ 
-    
-    connectionsList[serverSock] = new Connection(serverSock);
+    send_queryservers(serverSock, myServer);
+    create_connection(serverSock, groupID, ip_address, port, false);
     return serverSock;
 }
 
@@ -348,8 +324,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
     //also if the ip anf port is sent too
-    if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) {
-        std::cout << "This is valid, proceed to receive servers" << std::endl; // DEBUG    
+    if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) { 
         // Put together the SERVERS response 
         std::string servers_response = queryserversResponse(from_groupID, server);
         // Wrap it in STX and ETX
@@ -367,17 +342,17 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, from_groupID, server);
-        //// Bætti þessu við tók úr connect to server fallinu
-        //send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
-        ///////
+        
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
-        send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+        //send_queryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+
 
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
-        std::cout << "Þýðir að ég fékk servers og fer hingað inn"<< std::endl; // DEBUG
+        std::cout << "Fengum SERVERS og förum inn i að splitta"<< std::endl; // DEBUG
+        create_connection(server_socket, tokens[1], "None", -1, true); // Create a connection from the socket
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
@@ -388,7 +363,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         while(std::getline(servers_stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token); //Then push rest into the stream
             if (count == 0) {
-                parseTokenToConnection(servers_tokens[0], server_socket);
+                std::vector<std::string> parsedInfo= parseTokenToConnection(servers_tokens[0]);
                 std::cout << "Fyrsta tokenið er: " << servers_tokens[0] << std::endl; // DEBUG
             }
             count++; 
@@ -397,7 +372,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
             std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
-        std::cout << "Stopp"<< std::endl; // DEBUG
+        std::cout << "Þetta er eftir að við prentum út servers listann"<< std::endl; // DEBUG
     
 
 
@@ -409,7 +384,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
         }
         send(server_socket, msg.c_str(), msg.length(),0);
-        std::cout << "Message sent was" << msg << std::endl;
+        std::cout << "Message sent was: " << msg << std::endl;
 
     }/*else if(tokens[0].compare("SENDMSG") == 0) {
         std::cout << "Send message" << std::endl;
@@ -424,31 +399,10 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     
     }*/
     
-    
-    
-    
-    
-    
-    
     else {
         std::cout << "Unknown command:" << buffer << std::endl;
     }   
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int main(int argc, char* argv[]) {
     // Messages format
@@ -457,7 +411,7 @@ int main(int argc, char* argv[]) {
     const char STX = 0x02;  // Start of command
     const char ETX = 0x03;  // End of command
 
-    myServer myServer("130.208.243.61", this_port);
+    myServer myServer("130.208.243.61", this_port, groupID);
     //myServer myServer("127.0.0.1", this_port);
 
     bool finished;
@@ -512,7 +466,7 @@ int main(int argc, char* argv[]) {
                 FD_SET(clientSock, &openSockets);
                 // And update the maximum file descriptor
                 maxfds = std::max(maxfds, clientSock) ;
-                send_queryservers(clientSock, groupID, myServer); // senda bara strax
+                send_queryservers(clientSock, myServer); // senda bara strax
                 
                 char handshakeBuffer[1025];
                 memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
@@ -520,13 +474,21 @@ int main(int argc, char* argv[]) {
                 std::cout << "Print HandshakeBuffer: " << handshakeBuffer << std::endl; //DEBUG
                 if(handshakeBytes > 0 && strcmp(handshakeBuffer, "SECRET_KATRIN") == 0) {
                     std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
-                    create_connection(clientSock, groupID, myServer.ip_address, myServer.port); // Create a connection from the socket
-                    printf("Our Client is created on server, with id: %s\n", groupID.c_str());
+                    create_connection(clientSock, groupID, myServer.ip_address, myServer.port, false); // Create a connection from the socket
+                    printf("Our Client is connected on server with id: %s\n", groupID.c_str());
                 } else {
                     std::string extracted = extractCommand(handshakeBuffer);
                     if(extracted.substr(0, 13) == "QUERYSERVERS,") {
-                        Connection* newConnection = new Connection(clientSock);
-                        connectionsList[clientSock] = newConnection;
+                        std::vector<std::string> tokens;
+                        std::stringstream stream(extracted);
+                        std::string token;
+                        // Split command from client into tokens for parsing
+                        while(std::getline(stream, token, ',')) {
+                                tokens.push_back(token);
+                            }
+                        std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
+                        //create_connection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
+                        clientCommand(clientSock, &openSockets, &maxfds, extracted, groupID, myServer);
                     }
                 }
 
@@ -577,6 +539,7 @@ int main(int argc, char* argv[]) {
                     
                 }*/
                 // Decrement the number of sockets waiting to be dealt with
+                printf("Client connected on server: %d\n", clientSock);
                 n--;
             }
             // Now check for commands from clients
@@ -603,11 +566,11 @@ int main(int argc, char* argv[]) {
                             if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
                                 // STX and ETX found, extract the string between STX and ETX
                                 std::string extracted = extractCommand(buffer);
-                                std::cout << "Annar: " << connection->groupID << ": " << extracted <<"\n"<< std::endl;
+                                std::cout << "Fer inn sem server command: \n" << std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
                             } else {
                                 // STX not found or ETX not found or neither then treat it as a client command
-                                std::cout << "Þriðji: " << connection->groupID << ": " << buffer <<"\n" << std::endl;
+                                std::cout << "Fer inn sem client command:\n" << std::endl;
                                 clientCommand(connection->sock, &openSockets, &maxfds, buffer, groupID, myServer);
                             }
                         }
