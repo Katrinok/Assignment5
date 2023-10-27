@@ -69,7 +69,15 @@ class Connection {
     friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
-
+class Message {
+    public:
+    std::string to_groupID;
+    std::string from_groupID;
+    std::string message_content;
+    
+    // Constructor
+    Message(const std::string& toID, const std::string& fromID, const std::string& msg) : to_groupID(toID), from_groupID(fromID),message_content(msg) {}
+};
 
 
 
@@ -408,8 +416,8 @@ int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
     std::string groupID = "P3_GROUP_20";
-    const char STX = 0x02;  // Start of command
-    const char ETX = 0x03;  // End of command
+    char STX = 0x02;  // Start of command
+    char ETX = 0x03;  // End of command
 
     myServer myServer("130.208.243.61", this_port, groupID);
     //myServer myServer("127.0.0.1", this_port);
@@ -487,58 +495,10 @@ int main(int argc, char* argv[]) {
                                 tokens.push_back(token);
                             }
                         std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                        //create_connection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
+                        create_connection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
                         clientCommand(clientSock, &openSockets, &maxfds, extracted, groupID, myServer);
                     }
                 }
-
-                // Temporary buffer to read the initial message
-                /*char tempBuffer[1024] = {0};
-                int bytesRead = recv(clientSock, tempBuffer, sizeof(tempBuffer) - 1, 0); // leaving space for null-terminator
-                std::cout << "Ef einhver reynir að connecta hingað: " << tempBuffer << std::endl;
-                if(bytesRead > 0) {
-                    std::string receivedResponse = tempBuffer;
-                    if (receivedResponse == "SECRET_KATRIN") { // Only the server that sends this string gets to be added to the connected list
-                        // create a new client to store information.
-                        std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
-                        Connection* newConnection = new Connection(clientSock);
-                        newConnection->groupID = groupID;  // Set the group ID in the Connection instance
-                        newConnection->isServer = false;
-                        connectionsList[clientSock] = newConnection;
-                        printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
-                        
-
-                    } else {
-                        send_queryservers(clientSock, groupID, myServer); // senda bara strax 
-
-                        std::string extracted = extractCommand(tempBuffer);
-                        std::cout << "SKoða: " << extracted << std::endl;
-                        if(extracted.substr(0, 13) == "QUERYSERVERS,") {
-                            std::vector<std::string> tokens;
-                            std::stringstream stream(extracted);
-                            std::string token;
-
-                            // Split command from client into tokens for parsing
-                            while(std::getline(stream, token, ',')) {
-                                tokens.push_back(token);
-                            }
-                            std::string receivedGroupID = tokens[1];  // Extract everything after "QUERYSERVERS,"
-                            std::cout << "1. Received command from " << receivedGroupID << std::endl;
-                            //if(tokens[1].find("38") == std::string::npos) { //block group 38
-                            std::cout << "inn í stuffið"<< receivedGroupID << std::endl;
-                            Connection* newConnection = new Connection(clientSock);
-                            newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
-                            std::cout << "2. Received command from " << newConnection->groupID << ": " << receivedResponse << std::endl;
-                            connectionsList[clientSock] = newConnection;
-                            // HÉR ÞARF AÐ SVARA MEÐ SERVERS 
-                            clientCommand(newConnection->sock, &openSockets, &maxfds, extracted, groupID, myServer);
-                            printf("Client connected on server: %d, with id: %s\n", clientSock, newConnection->groupID.c_str());
-                           // }
-                        }
-                    }
-                    
-                }*/
-                // Decrement the number of sockets waiting to be dealt with
                 printf("Client connected on server: %d\n", clientSock);
                 n--;
             }
@@ -552,12 +512,13 @@ int main(int argc, char* argv[]) {
                     //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
+                        std::cout << "Print buffer: " << buffer << std::endl; //DEBUG
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
                             std::cout << "Client closed connection: " << connection->sock << std::endl;
-
                         } else {
+                            std::cout << "Command bytes: " << commandBytes << std::endl;   //DEBUG
                             // We don't check for -1 (nothing received) because select()
                             // only triggers if there is something on the socket for us.
                             char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr

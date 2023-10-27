@@ -56,7 +56,6 @@ void listenServer(int serverSocket)
         {
             printf("%s %s\n", getTimestamp().c_str(), buffer);
         }
-        printf("here\n");
     }
 }
 
@@ -135,7 +134,6 @@ int main(int argc, char* argv[])
     while(!finished)
     {
         bzero(buffer, sizeof(buffer));
-
         fgets(buffer, sizeof(buffer), stdin);
     
        
