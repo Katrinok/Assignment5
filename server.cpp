@@ -490,7 +490,6 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // Hér þurfum við að senda á hóp sem er með group id og socket til að fá messageinn 
-
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
     
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
@@ -579,7 +578,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         Connection* connection = isConnected(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
             std::cout << "Server " << tokens[1] << " is connected: " << tokens[1] << std::endl; // Print out client connected on server
-            std::string msg = "SENDMSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
+            std::string msg = "SEND_MSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
             // Check if the server has closed connection nad detect broken pipe
