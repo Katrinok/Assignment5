@@ -264,7 +264,7 @@ void keepAliveFunction() {
 Connection* isConnected(const std::string& groupId) {
     for (const auto& pair : connectionsList) {
         Connection* connection = pair.second;
-        if (connection->groupID == groupId) {
+        if ((connection->groupID == groupId) && (connection->isServer)) {
             return connection;  // return the Connection object if found
         }
     }
@@ -353,6 +353,8 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     //Hér sendum við queryservers
     sendQueryservers(serverSock, myServer);
     createConnection(serverSock, groupID, ip_address, port, true);
+    // Þurfum að adda hér í messengestore pæla seinna
+
     return serverSock;
 }
 
@@ -397,12 +399,9 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
-        std::cout << "Fengum SERVERS og förum inn i að splitta"<< std::endl; // DEBUG
-        //create_connection(server_socket, tokens[1], "None", -1, true); // Create a connection from the socket
         std::vector<std::string> servers_tokens;
         std::string servers_token;
         std::stringstream servers_stream(buffer.substr(8));
-        // here we could mabey need to use BFS to connect to everyone
 
         // After Servers take the first one and fill out the connection form
         while(std::getline(servers_stream, servers_token, ';')) {
@@ -411,8 +410,11 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
-
+        
         createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
+
+        // Print out the server that are to send QUERYSERVERS
+        std::cout << "Servers to connect to: "<< std::endl; // DEBUG
         for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
             std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
@@ -454,14 +456,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("LISTSERVERS") == 0) {
         std::cout << "Listing servers:" << std::endl;
         std::string msg;
-        if(connectionsList.empty()) {
-            msg = "Not connected to anyone";
-        } else {
-            for(auto const& pair : connectionsList) {
-                Connection *connection = pair.second;
-                if(connection->isServer) { // Make sure to check if the connection is a server
-                    msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
-                }
+        for(auto const& pair : connectionsList) {
+            Connection *connection = pair.second;
+            if(connection->isServer) { // Make sure to check if the connection is a server
+                msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+            }
+            else {
+                msg = "No servers connected";
             }
         }
 
