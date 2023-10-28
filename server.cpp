@@ -30,6 +30,7 @@
 #include <thread>
 #include <map>
 #include <set>
+#include <queue>
 
 #include <unistd.h>
 
@@ -71,6 +72,23 @@ class Connection {
     friend std::ostream& operator<<(std::ostream& os, const Connection& connection); // to use '<<' to send a Server object to an 'std::ostream', like std::out
 };
 
+
+class QueueServer {
+public:
+    std::string groupID;
+    std::string ip_address;
+    int port;
+
+    // Constructor to initialize an instance with ip, port, and groupId
+    QueueServer(const std::string& ip, int p, const std::string& group) 
+        : ip_address(ip), port(p), groupID(group) {} 
+
+    ~QueueServer(){}            // Destructor
+
+    // Friend function to use '<<' to send a QueueServer object to an 'std::ostream'
+    friend std::ostream& operator<<(std::ostream& os, const QueueServer& server); 
+};
+
 class Message {
     public:
     std::string to_groupID;
@@ -80,23 +98,6 @@ class Message {
     // Constructor
     Message(const std::string& toID, const std::string& fromID, const std::string& msg) : to_groupID(toID), from_groupID(fromID),message_content(msg) {}
 };
-
-
-
-// Simple class for handling queued servers that we have no et connected to
-class CuteServer {
-    public:
-    int sock;              // socket of client connection
-    std::string groupID;           // Limit length of name of client's user
-    std::string ip_address;
-    int port;
-
-    CuteServer(int socket) : sock(socket){} 
-
-    ~CuteServer(){}            // Virtual destructor defined for base class
-    friend std::ostream& operator<<(std::ostream& os, const CuteServer& queued_server); // to use '<<' to send a Server object to an 'std::ostream', like std::out
-};
-
 
 std::vector<std::string> splitTokens(const std::string& token) {
     std::stringstream ss(token);
@@ -117,7 +118,7 @@ std::vector<std::string> splitTokens(const std::string& token) {
 // (indexed on socket no.) sacrificing memory for speed.
 
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
-std::map<int, CuteServer*> queuedServers; // Lookup table for per server in queue
+std::queue<QueueServer> serverQueue;// Lookup table for per server in queue
 std::map<std::string, std::vector<Message>> messageStore; // Lookup table for messages stored as vectors with key being to_groupID
 std::map<std::string, size_t> currentMessageIndex; // MEssage pointer to the current message in the messageStore
 // Open socket for specified port.
@@ -422,26 +423,12 @@ std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& 
 
 
 // Takes in a vector of servers with comma seperated tokens, group_id,
-void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
+void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in a vector of servers with comma seperated tokens, group_id,
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
         if (connection_tokens[0] != server.groupID)  {
             if(!isConnected(connection_tokens[0])) {
-                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
-                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
-                FD_SET(socket, openSockets);
-                // And update the maximum file descriptor
-                *maxfds = std::max(*maxfds, socket);
-                char buffer[1024];
-                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
-                if (bytes_read > 0) {
-                    buffer[bytes_read] = '\0';
-                    std::string command = extractCommand(buffer);
-                    std::cout << "Command received: " << command << std::endl;
-            } else {
-                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
-            }
-            
+                serverQueue.push(QueueServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0]));
             }
         }
     }
@@ -489,19 +476,18 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         while(std::getline(servers_stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token); //Then push rest into the stream
         }
-        
+
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
-        
         createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
-
+        addToQueue(servers_tokens, server);
         // Print out the server that are to send QUERYSERVERS
-        std::cout << "\nServers to connect to: "<< std::endl; // DEBUG
-        for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
-            std::cout << servers_tokens[i] << std::endl; //DEBUG  +
-        }
+        //std::cout << "\nServers to connect to: "<< std::endl; // DEBUG
+        //for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
+          //  std::cout << servers_tokens[i] << std::endl; //DEBUG  +
+        //}
         // Skoða guard um tvítenginu
-        connectToServersVector(servers_tokens, server, openSockets, maxfds);
+        
         // After this command we should be connected to at least 3 servers
         std::cout << "Ég fer hérna út" << std::endl;
         for (const auto& pair : connectionsList) {
@@ -553,7 +539,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 }
             }
         }
-        // Now, clear the messages for the desired group from the messageStore
+        // Now, clear the mekokssages for the desired group from the messageStore
         if (messageStore.find(desiredGroupID) != messageStore.end()) {
             messageStore[desiredGroupID].clear();
         }
@@ -728,6 +714,28 @@ int main(int argc, char* argv[]) {
     finished = false;
     std::thread keepAliveThread(keepAliveFunction, &openSockets, &maxfds);
     while(!finished) {
+        //// Bætti þessu bulli inn
+        if (!serverQueue.empty()) {
+        QueueServer upcomingServer = serverQueue.front();
+        
+        int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
+        
+        if (serverSocket > 0) {
+            serverQueue.pop();
+
+            Connection* newConnection = new Connection(serverSocket);
+            newConnection->ip_address = upcomingServer.ip_address;
+            newConnection->port = upcomingServer.port;
+            newConnection->groupID = upcomingServer.groupID;
+            newConnection->isServer = true;
+
+            connectionsList[serverSocket] = newConnection;
+
+            FD_SET(serverSocket, &openSockets);
+            maxfds = std::max(maxfds, serverSocket);
+        }
+    }
+    /// Hér eftir 
         // Get modifiable copy of readSockets
         readSockets = exceptSockets = openSockets;
         memset(buffer, 0, sizeof(buffer));

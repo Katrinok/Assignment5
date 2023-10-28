@@ -79,6 +79,7 @@
         "semaphore": "cpp",
         "stop_token": "cpp",
         "condition_variable": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "queue": "cpp"
     }
 }
