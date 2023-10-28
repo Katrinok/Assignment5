@@ -41,7 +41,7 @@
 #endif
 
 #define BACKLOG  5          // Allowed length of queue of waiting connections
-const int MAX_SERVER_CONNECTIONS = 15;
+const int MAX_SERVER_CONNECTIONS = 5;
 
 std::mutex mtx;  // Mutex for synchronizing access to connectionsList
 // Class to keep information about this server
@@ -294,6 +294,7 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
     if (connectionsList.find(serverSock) != connectionsList.end()) {
         // Close the existing connection and free memory (if needed).
         delete connectionsList[serverSock];  // free memory
+        std::cout << "Updateing existing information" << std::endl;
     }
 
     Connection* newConnection = new Connection(serverSock);
@@ -559,15 +560,14 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
-        // If we get a keepalive from a server we print out the server id
-        std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << std::endl;
         if(tokens[1] != "0") {
+            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << "with "<< token[1]<< " messages"<<std::endl;
             std::cout << "Number of messages from group: "<< connectionsList[server_socket]->groupID << " is: " << tokens[1] << std::endl;
             std::string fetch_msg = "FETCH_MSGS," + server.groupID; // Create the message to send
             std::cout << "Message sent was: " << fetch_msg << std::endl;
             send(server_socket, buffer.c_str(), buffer.length(), 0); // Send the message to the server
         } else {
-            std::cout << "No Messages from group: "<< connectionsList[server_socket]->groupID << std::endl;
+            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " but no messages"<<std::endl;
         }
     } else {
         // prints out the unknown command from the server 
@@ -687,19 +687,17 @@ int main(int argc, char* argv[]) {
     int maxfds;                     // Passed to select() as max fd in set
     struct sockaddr_in client;
     socklen_t clientLen;
-    char buffer[1025];              // buffer for reading from clients+
+    char buffer[5000];              // buffer for reading from clients+
     std::string leftoverBuffer;     // buffer for reading from clients
 
     if(argc != 2) {
         printf("Usage: chat_server <ip port>\n");
         exit(0);
     }
-
     // Setup socket for server to listen to
 
     listenSock = open_socket(this_port); 
     printf("Listening on port: %d\n", this_port);
-
     if(listen(listenSock, BACKLOG) < 0) {
         printf("Listen failed on port %s\n", argv[1]);
         exit(0);
@@ -709,14 +707,14 @@ int main(int argc, char* argv[]) {
         FD_SET(listenSock, &openSockets);
         maxfds = listenSock;
     }
-
     finished = false;
     std::thread keepAliveThread(keepAliveFunction, &openSockets, &maxfds);
     while(!finished) {
         //// Bætti þessu bulli inn
-        if (!serverQueue.empty()) {
+        if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS ) {
         QueueServer upcomingServer = serverQueue.front();
         
+
         int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
         
         if (serverSocket > 0) {
@@ -727,11 +725,11 @@ int main(int argc, char* argv[]) {
             newConnection->port = upcomingServer.port;
             newConnection->groupID = upcomingServer.groupID;
             newConnection->isServer = true;
-
             connectionsList[serverSocket] = newConnection;
 
             FD_SET(serverSocket, &openSockets);
             maxfds = std::max(maxfds, serverSocket);
+            std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
         }
     }
     /// Hér eftir 
@@ -776,7 +774,6 @@ int main(int argc, char* argv[]) {
                             }
                         if (!isConnected(tokens[1])) {
                             std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                            std::cout << "GROUPIDIDIDIDID: " << tokens[1] << std::endl; //DEBUG
                             createConnection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
                             serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                         } else {
@@ -797,7 +794,6 @@ int main(int argc, char* argv[]) {
                     //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
-                        std::cout << "Print buffer: " << buffer << std::endl; //DEBUG
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
@@ -826,7 +822,7 @@ int main(int argc, char* argv[]) {
                                     }
                                 }
                                 if (start_pos < leftoverBuffer.size()) {
-                                    std::cout << "Leftover buffer for client: " << leftoverBuffer << std::endl; //DEBUG
+                                    std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
                                 }
@@ -834,6 +830,7 @@ int main(int argc, char* argv[]) {
                             
                             } catch (const std::length_error &le) {  // Catching string error that makes the server cras
                                 std::cerr << "Length error: " << le.what() << std::endl;
+                                leftoverBuffer.clear();  // Clearing buffer to recover
                             }
                         
                         }
@@ -847,18 +844,4 @@ int main(int argc, char* argv[]) {
     } 
     keepAliveThread.join();
 }
-    
-                            /*std::cout << "Command bytes: " << commandBytes << std::endl;   //DEBUG
-                            // We don't check for -1 (nothing received) because select()
-                            // only triggers if there is something on the socket for us.
-                            char* STX_ptr = strchr(buffer, STX);// Find pointers to STX and ETX within the buffer using strchr
-                            char* ETX_ptr = strchr(buffer, ETX);
-                            
-                            if (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
-                                // STX and ETX found, extract the string between STX and ETX
-                                std::string extracted = extractCommand(buffer);
-                                serverCommand(connection->sock, &openSockets, &maxfds, extracted, myServer);
-                            } else {*/
-
-                            // STX not found or ETX not found or neither then treat it as a client command
                             
