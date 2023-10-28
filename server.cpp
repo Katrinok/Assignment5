@@ -580,12 +580,12 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
                   std::string buffer, myServer server) 
-{
-    buffer.erase(std::remove(buffer.begin(), buffer.end(), '\n'), buffer.end()); // Remove the newline character from the end of the string
+{   
+    
     std::vector<std::string> tokens;
     std::stringstream stream(buffer);
     std::string token;
-
+    
     // Split command from client into tokens for parsing
     while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
@@ -602,7 +602,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         *maxfds = std::max(*maxfds, socket);
         //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
 
-    } else if(tokens[0].compare("LISTSERVERS") == 0) {
+    } 
+    else if(tokens[0].compare("LISTSERVERS") == 0) {
         std::string msg;
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
@@ -791,7 +792,6 @@ int main(int argc, char* argv[]) {
                 for(auto const& pair : connectionsList) {
                     Connection *connection = pair.second;
                     // Check which client has sent us something
-                    //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
                         if(commandBytes == 0) {
@@ -804,6 +804,7 @@ int main(int argc, char* argv[]) {
                                 leftoverBuffer.append(buffer, commandBytes);
                                 size_t start_pos = 0;
                                 // While we have something in the buffer
+                                leftoverBuffer.erase(std::remove(leftoverBuffer.begin(), leftoverBuffer.end(), '\n'), leftoverBuffer.end());
                                 while(true) {
                                     // Search for STX and ETX in the leftoverBuffer starting from start_pos
                                     size_t stx_pos = leftoverBuffer.find(STX, start_pos);
@@ -821,7 +822,7 @@ int main(int argc, char* argv[]) {
                                         break; // Exit the loop if we can't find a complete command
                                     }
                                 }
-                                if (start_pos < leftoverBuffer.size()) {
+                                if (start_pos < leftoverBuffer.size() && leftoverBuffer.empty() == false) {
                                     std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
