@@ -445,6 +445,10 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else {
     std::cout << "No tokens found." << std::endl;
     } 
+    std::cout << "Number of tokens: " << tokens.size() << std::endl;
+    std::cout << "Buffer: " << tokens[0].compare("LISTSERVERS") << std::endl;
+    std::cout << "Buffer size: " << tokens[0].size() << std::endl;
+
     // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
