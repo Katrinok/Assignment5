@@ -239,7 +239,7 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
                 }
                 
                 // Construct the keepalive message
-                std::string keepaliveMessage = "KEEPALIVE," + std::to_string(messageCount);
+                std::string keepaliveMessage = "KEEPALIVE," + std::to_string(messageCount); // RÉTT FORMAT
                 std::cout << "Sending keepalive to " << connection->groupID << " with " << messageCount << " messages." << std::endl;
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
                 ssize_t bytes_sent = send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
