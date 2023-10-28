@@ -520,7 +520,16 @@ void fetchMessage_helper(int server_socket, int *maxfds, std::string buffer, myS
 
 }
 
+// Gets all the messages 
+std::vector<Message> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
+    // Check if the groupID exists in the map
+    if (messageStore.find(groupID) != messageStore.end()) {
+        return messageStore.at(groupID);
+    }
 
+    // Return an empty vector if no messages found for the given groupID
+    return std::vector<Message>();
+}
 
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -578,11 +587,11 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         Connection* connection = isConnected(tokens[1]); // check if connected
         std::cout << "Message from: "<< server.groupID << "sent to: " << connection->groupID << std::endl; // DEBUG
         if(connection) { //if connected or in connectionlist
-            std::cout << "Server " << tokens[1] << " is connected: " << tokens[1] << std::endl; // Print out client connected on server
+            std::cout << "Server " << tokens[1] << " is connected: " << std::endl; // Print out client connected on server
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
+            std::cout << "Message sent was: " << msg << std::endl;
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
-            std::cout << "Message sent was: " << msg << std::endl;
             // Check if the server has closed connection nad detect broken pipe
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
