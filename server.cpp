@@ -576,9 +576,10 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // If we were to send message to a server that is is the process of sending
         std::cout << "Send message" << std::endl; // bREYTA prentinu
         Connection* connection = isConnected(tokens[1]); // check if connected
+        std::cout << "Message from: "<< server.groupID << "sent to: " << connection->groupID << std::endl; // DEBUG
         if(connection) { //if connected or in connectionlist
             std::cout << "Server " << tokens[1] << " is connected: " << tokens[1] << std::endl; // Print out client connected on server
-            std::string msg = "SEND_MSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
+            std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
             // Check if the server has closed connection nad detect broken pipe
