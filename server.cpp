@@ -421,6 +421,36 @@ std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& 
 }
 
 
+// Takes in a vector of servers with comma seperated tokens, group_id,
+void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
+    for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
+        std::vector<std::string> connection_tokens = splitTokens(servers[i]);
+        if (connection_tokens[0] != server.groupID)  {
+            if(!isConnected(connection_tokens[0])) {
+                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
+                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
+                FD_SET(socket, openSockets);
+                // And update the maximum file descriptor
+                *maxfds = std::max(*maxfds, socket);
+                char buffer[1024];
+                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
+                if (bytes_read > 0) {
+                    buffer[bytes_read] = '\0';
+                    std::string command = extractCommand(buffer);
+                    std::cout << "Command received: " << command << std::endl;
+            } else {
+                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
+            }
+            
+            }
+        }
+    }
+}
+
+
+
+
+
 // Process command from client on the server
 void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
                   std::string buffer, myServer server) 
@@ -560,31 +590,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }   
 }
 
-// Takes in a vector of servers with comma seperated tokens, group_id,
-void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
-    for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
-        std::vector<std::string> connection_tokens = splitTokens(servers[i]);
-        if (connection_tokens[0] != server.groupID)  {
-            if(!isConnected(connection_tokens[0])) {
-                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
-                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
-                FD_SET(socket, openSockets);
-                // And update the maximum file descriptor
-                *maxfds = std::max(*maxfds, socket);
-                char buffer[1024];
-                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
-                if (bytes_read > 0) {
-                    buffer[bytes_read] = '\0';
-                    std::string command = extractCommand(buffer);
-                    std::cout << "Command received: " << command << std::endl;
-            } else {
-                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
-            }
-            
-            }
-        }
-    }
-}
+
 
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
