@@ -260,6 +260,16 @@ void keepAliveFunction() {
     }
 }
 
+Connection* isConnected(const std::string& groupId) {
+    for (const auto& pair : connectionsList) {
+        Connection* connection = pair.second;
+        if (connection->groupID == groupId) {
+            return connection;  // return the Connection object if found
+        }
+    }
+    return nullptr;  // return nullptr if not connected
+}
+
 void sendQueryservers(int server_sock, myServer myServer) {
     std::string queryservers = "QUERYSERVERS," + myServer.groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
     queryservers = wrapWithSTXETX(queryservers);
@@ -418,15 +428,18 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(),0);
         std::cout << "Message sent was: " << msg << std::endl;
 
-    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 2)) {
+    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
+        // If we were to send message to a server that is is the process of sending
         std::cout << "Send message" << std::endl;
-        std::string msg;
-        for(auto const& pair : connectionsList) {
-            Connection *connection = pair.second;
-            msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+        Connection* connection = isConnected(tokens[1]); // check if connected
+        if(connection) { //if connected or in connectionlist
+            std::cout << "Client is connected to server: " << tokens[1] << std::endl; // Print out client connected on server
+            std::string msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
+            send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+        } else {
+            // Here we can store the messege to the messege list have to intertwine with keepalive
+            std::cout << "Client is not connected to server: " << tokens[1] << std::endl;
         }
-        send(server_socket, msg.c_str(), msg.length(),0);
-        std::cout << "Message sent was" << msg << std::endl;
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
     
     } else {
