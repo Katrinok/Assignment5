@@ -30,6 +30,7 @@
 #include <thread>
 #include <map>
 
+
 #include <unistd.h>
 
 // fix SOCK_NONBLOCK for OSX
@@ -234,7 +235,7 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
     for(const auto& pair : connectionsList) {
         Connection* connection = pair.second;
-        if (connection->isServer && (connection->groupID != "Unknown")) { // If the instance is a server and if the id is not None
+        if (connection->isServer && (connection->groupID != "Unknown") && (connection->ip_address != "None")) { // If the instance is a server and if the id is not None
             response += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
         }
     }
@@ -349,6 +350,21 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
 
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
+    // Here count the servers that are connected
+    int serverCount = 0;
+    // Add to the server count if the connection is server
+    for (const auto& pair : connectionsList) {
+        if (pair.second->isServer) {
+            serverCount++;
+        }
+    }
+    // Compare to maximum server connections
+    if(serverCount >= MAX_SERVER_CONNECTIONS) {
+        std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
+        return -1;
+    }
+    // If servers are fewer than 15 then connect
+    
     int serverSock;
     struct sockaddr_in serverAddr;
     serverSock = socket(AF_INET, SOCK_STREAM, 0);
@@ -373,34 +389,28 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     sendQueryservers(serverSock, myServer);
     createConnection(serverSock, groupID, ip_address, port, true);
     // Þurfum að adda hér í messengestore pæla seinna
-
-    // Here count the servers that are connected
-    int serverCount = 0;
-    // Add to the server count if the connection is server
-    for (const auto& pair : connectionsList) {
-        if (pair.second->isServer) {
-            serverCount++;
-        }
-    }
-    // Compare to maximum server connections
-    if(serverCount >= MAX_SERVER_CONNECTIONS) {
-        std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
-        return -1;
-    }
     
     return serverSock;
 }
 
 // Takes in a vector of servers with comma seperated tokens, group_id,
 void connectToServersVector(std::vector<std::string> servers, myServer server) {
-        for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
-            std::vector<std::string> connection_tokens = splitTokens(servers[i]);
-            if (connection_tokens[0] != server.groupID)  {
+    for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
+        std::vector<std::string> connection_tokens = splitTokens(servers[i]);
+        if (connection_tokens[0] != server.groupID)  {
+            if(!isConnected(connection_tokens[0])) {
                 std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
                 connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
+            } else {
+                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
             }
+        }
     }
 }
+
+
+
+
 
 // Process command from client on the server
 void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -419,17 +429,15 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     //also if the ip anf port is sent too
     if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) { 
         // Put together the SERVERS response 
-        std::string servers_response = queryserversResponse(server.groupID, server);
-        // Wrap it in STX and ETX
-        servers_response = wrapWithSTXETX(servers_response);
-        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
-            perror("Error sending SERVERS message");
-            return;
-        }
-        std::cout << "SERVERS sent: " << servers_response << std::endl;
-        /// tEST
-
-        
+            std::string servers_response = queryserversResponse(server.groupID, server);
+            // Wrap it in STX and ETX
+            servers_response = wrapWithSTXETX(servers_response);
+            if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+                perror("Error sending SERVERS message");
+                return;
+            }
+            std::cout << "SERVERS sent: " << servers_response << std::endl;
+            /// tEST
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
         std::vector<std::string> servers_tokens;
@@ -451,7 +459,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
             std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
-
+        // Skoða guard um tvítenginu
         connectToServersVector(servers_tokens, server);
 
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) { // SEND MSG,<TO GROUP ID>,<FROM GROUP ID>,<Message content>
@@ -483,7 +491,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             // Kannski ekki sniðugt
             //serverCommand(server_socket, openSockets, maxfds, "FETCH_MSGS," + connectionsList[server_socket]->groupID, server); // smá recursion stemming
         } else {
-            std::cout << "No Mesages from group: "<< connectionsList[server_socket]->groupID << std::endl;
+            std::cout << "No Messages from group: "<< connectionsList[server_socket]->groupID << std::endl;
         }
     } else {
         // prints out the unknown command from the server 
@@ -631,6 +639,7 @@ int main(int argc, char* argv[]) {
             if(FD_ISSET(listenSock, &readSockets)) {
                 clientSock = accept(listenSock, (struct sockaddr *)&client, &clientLen);
                 printf("accept***\n");
+                
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
                 // And update the maximum file descriptor
@@ -655,10 +664,14 @@ int main(int argc, char* argv[]) {
                         while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
                             }
-                        std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                        std::cout << "GROUPIDIDIDIDID: " << tokens[1] << std::endl; //DEBUG
-                        createConnection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
-                        serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
+                        if (!isConnected(tokens[1])) {
+                            std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
+                            std::cout << "GROUPIDIDIDIDID: " << tokens[1] << std::endl; //DEBUG
+                            createConnection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
+                            serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
+                        } else {
+                            std::cout << "Server is already connected" << std::endl; //DEBUG
+                        }
                     }
                 }
                 printf("Client connected on server: %d\n", clientSock);
@@ -680,35 +693,51 @@ int main(int argc, char* argv[]) {
                             closeConnection(connection->sock, &openSockets, &maxfds);
                             std::cout << "Client closed connection: " << connection->sock << std::endl;
                         } else {
-                            // We have received commandBytes of data, but it can be many commands
-                            leftoverBuffer.append(buffer, commandBytes);
-                            size_t start_pos = 0;
-                            // While we have something in the buffer
-                            while(true) {
-                                // Search for STX and ETX in the leftoverBuffer starting from start_pos
-                                size_t stx_pos = leftoverBuffer.find(STX, start_pos);
-                                size_t etx_pos = leftoverBuffer.find(ETX, start_pos);
+                            try{
+                                // We have received commandBytes of data, but it can be many commands
+                                leftoverBuffer.append(buffer, commandBytes);
+                                size_t start_pos = 0;
+                                // While we have something in the buffer
+                                while(true) {
+                                    // Search for STX and ETX in the leftoverBuffer starting from start_pos
+                                    size_t stx_pos = leftoverBuffer.find(STX, start_pos);
+                                    size_t etx_pos = leftoverBuffer.find(ETX, start_pos);
 
-                                // If both STX and ETX are found and in correct order
-                                if(stx_pos != std::string::npos && etx_pos != std::string::npos && stx_pos < etx_pos) {
-                                    std::string extracted = leftoverBuffer.substr(stx_pos + 1, etx_pos - stx_pos - 1);
-                                    std::cout << "\nCommand from server " << connection->groupID << ": " << extracted << std::endl;
-                                    serverCommand(connection->sock, &openSockets, &maxfds, extracted, myServer);
-                                    
-                                    // Move to the position after the found ETX for the next iteration
-                                    start_pos = etx_pos + 1;
-                                } else {
-                                    break; // Exit the loop if we can't find a complete command
+                                    // If both STX and ETX are found and in correct order
+                                    if(stx_pos != std::string::npos && etx_pos != std::string::npos && stx_pos < etx_pos) {
+                                        std::string extracted = leftoverBuffer.substr(stx_pos + 1, etx_pos - stx_pos - 1);
+                                        std::cout << "\nCommand from server " << connection->groupID << ": " << extracted << std::endl;
+                                        serverCommand(connection->sock, &openSockets, &maxfds, extracted, myServer);
+                                        
+                                        // Move to the position after the found ETX for the next iteration
+                                        start_pos = etx_pos + 1;
+                                    } else {
+                                        break; // Exit the loop if we can't find a complete command
+                                    }
                                 }
-                            }
-                            if (start_pos < leftoverBuffer.size()) {
-                                std::cout << "Leftover buffer for client: " << leftoverBuffer << std::endl; //DEBUG
-                                clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
-                                leftoverBuffer.clear();
-                            }
-                            leftoverBuffer.erase(0, start_pos);
+                                if (start_pos < leftoverBuffer.size()) {
+                                    std::cout << "Leftover buffer for client: " << leftoverBuffer << std::endl; //DEBUG
+                                    clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
+                                    leftoverBuffer.clear();
+                                }
+                                leftoverBuffer.erase(0, start_pos);
                             
-                            
+                            } catch (const std::length_error &le) {  // Catching string error that makes the server cras
+                                std::cerr << "Length error: " << le.what() << std::endl;
+                            }
+                        
+                        }
+                    }
+                }
+                // Remove client from the clients list
+                for(auto const& c : disconnectedServers)
+                    connectionsList.erase(c->sock);
+            }
+        }
+    } 
+    keepAliveThread.join();
+}
+    
                             /*std::cout << "Command bytes: " << commandBytes << std::endl;   //DEBUG
                             // We don't check for -1 (nothing received) because select()
                             // only triggers if there is something on the socket for us.
@@ -723,16 +752,3 @@ int main(int argc, char* argv[]) {
 
                             // STX not found or ETX not found or neither then treat it as a client command
                             
-                        
-                        }
-                    }
-                }
-                // Remove client from the clients list
-                for(auto const& c : disconnectedServers)
-                    connectionsList.erase(c->sock);
-            }
-        }
-    } 
-    keepAliveThread.join();
-}
-    
