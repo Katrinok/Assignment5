@@ -582,6 +582,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            std::cout << "Message sent was: " << msg << std::endl;
             // Check if the server has closed connection nad detect broken pipe
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
