@@ -39,6 +39,7 @@
 #endif
 
 #define BACKLOG  5          // Allowed length of queue of waiting connections
+const int MAX_SERVER_CONNECTIONS = 15;
 
 std::mutex mtx;  // Mutex for synchronizing access to connectionsList
 // Class to keep information about this server
@@ -355,6 +356,20 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     createConnection(serverSock, groupID, ip_address, port, true);
     // Þurfum að adda hér í messengestore pæla seinna
 
+    // Here count the servers that are connected
+    int serverCount = 0;
+    // Add to the server count if the connection is server
+    for (const auto& pair : connectionsList) {
+        if (pair.second->isServer) {
+            serverCount++;
+        }
+    }
+    // Compare to maximum server connections
+    if(serverCount >= MAX_SERVER_CONNECTIONS) {
+        std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
+        return -1;
+    }
+    
     return serverSock;
 }
 
@@ -414,17 +429,52 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
 
         // Print out the server that are to send QUERYSERVERS
-        std::cout << "Servers to connect to: "<< std::endl; // DEBUG
+        std::cout << "\nServers to connect to: "<< std::endl; // DEBUG
         for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
             std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
 
         connectToServersVector(servers_tokens, server);
 
+    } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) { // SEND MSG,<TO GROUP ID>,<FROM GROUP ID>,<Message content>
+    // This is if we receive a message from another server
+        //std::string our_group_ID = tokens[1]; // þetta er þá td P3_GROUP_20 
+        std::string from_group = tokens[2]; // þetta er þá td P3_GROUP_30
+        std::string message_contents = tokens[3]; // þetta er þá td "Hello World"
+        std::cout << "Message received from " << from_group << ": " << message_contents << std::endl; // DEBUG
+        
+    
+    } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
+        // Hér þurfum við að senda á hóp sem er með group id og socket til að fá messageinn 
+
+    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
+    
+    } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
+    
+    } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
+        // If we get a keepalive from a server we print out the server id
+        std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << std::endl;
+        if(tokens[1] != "0") {
+            // If keepalive is not 0 we send a fetch message to the server to receive messages
+            // Kannski ekki sniðugt
+            //serverCommand(server_socket, openSockets, maxfds, "FETCH_MSGS," + connectionsList[server_socket]->groupID, server); // smá recursion stemming
+        } else {
+            std::cout << "No Mesages from group: "<< connectionsList[server_socket]->groupID << std::endl;
+        }
     } else {
         // prints out the unknown command from the server 
         std::cout << "Unknown command from server " << connectionsList[server_socket]->groupID << ": "  << buffer << std::endl;
     }   
+}
+
+void fetchMessage_helper(int server_socket, int *maxfds, std::string buffer, myServer server) {
+    // Beffer sem kemur inn er segjum Fetch_MSGS,P3_GROUP_20
+    send(server_socket, buffer.c_str(), buffer.length(), 0);
+    std::cout << "Message sent was: " << buffer << std::endl;
+    char messageBuffer[1025];
+    memset(messageBuffer, 0, sizeof(messageBuffer));
+    int messageBytes = recv(server_socket, messageBuffer, sizeof(messageBuffer) - 1, 0);  // This time, we block until we get a response
+
 }
 
 
@@ -453,8 +503,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
         //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
+
     } else if(tokens[0].compare("LISTSERVERS") == 0) {
-        std::cout << "Listing servers:" << std::endl;
         std::string msg;
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
@@ -491,7 +541,6 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent was: " << msg << std::endl;
     } else {
-
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
 }
