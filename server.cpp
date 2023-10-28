@@ -361,7 +361,7 @@ void connectToServersVector(std::vector<std::string> servers, myServer server) {
         for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
             std::vector<std::string> connection_tokens = splitTokens(servers[i]);
             if (connection_tokens[0] != server.groupID)  {
-                std::cout << "Connection tokens: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
+                std::cout << "Connecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
                 connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
             }
     }
@@ -439,6 +439,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
     }
+    std::cout << "print tokens: " << tokens[0] << std::endl; //DEBUG
+    // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
@@ -450,22 +452,21 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         *maxfds = std::max(*maxfds, socket);
         //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
     } else if(tokens[0].compare("LISTSERVERS") == 0) {
-    std::cout << "List servers" << std::endl;
-    std::string msg;
-
-    if(connectionsList.empty()) {
-        msg = "Not connected to anyone";
-    } else {
-        for(auto const& pair : connectionsList) {
-            Connection *connection = pair.second;
-            if(connection->isServer) { // Make sure to check if the connection is a server
-                msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+        std::cout << "Listing servers:" << std::endl;
+        std::string msg;
+        if(connectionsList.empty()) {
+            msg = "Not connected to anyone";
+        } else {
+            for(auto const& pair : connectionsList) {
+                Connection *connection = pair.second;
+                if(connection->isServer) { // Make sure to check if the connection is a server
+                    msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+                }
             }
         }
-    }
 
-    send(server_socket, msg.c_str(), msg.length(), 0);
-    std::cout << "Message sent was: " << msg << std::endl;
+        send(server_socket, msg.c_str(), msg.length(), 0);
+        std::cout << "Message sent was: " << msg << std::endl;
 
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
