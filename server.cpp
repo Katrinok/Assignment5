@@ -412,21 +412,15 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
 }
 //// Búa til fall fyrir status request
 /*std::vector<std::string> getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
-    std::vector<std::string> messages_count;
-    for (const std::string msg : messageStore) {
-        
-    }
-    // Check if the groupID exists in the map
-    if (messageStore.find(groupID) != messageStore.end()) {
-        for (const Message& msg : messageStore.at(groupID)) {
-            std::string formattedMsg = "," + msg.to_groupID + "," + msg.from_groupID + "," + msg.message_content;
-            formattedMessages.push_back(formattedMsg);
-        }
+    std::set<std::string> uniqueGroupIDs;
+
+    for (const auto& pair : messageStore) {
+        uniqueGroupIDs.insert(pair.first);  // Set will ensure only unique values are stored
     }
 
     return formattedMessages;
-}*/
-
+}
+*/
 
 // Process command from client on the server
 void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -481,7 +475,9 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         connectToServersVector(servers_tokens, server);
         std::cout << "Ég fer hérna út" << std::endl;
         for (const auto& pair : connectionsList) {
-            std::cout << pair.second->groupID << std::endl;
+            std::cout << "Socket: " << pair.second->sock<<std::endl;
+            std::cout <<"Group ID: " << pair.second->groupID << ", Ip Address"<< pair.second->ip_address <<", port" << pair.second->port<<std::endl;
+
         }
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
         std::string to_group = tokens[1];
