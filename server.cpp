@@ -80,8 +80,9 @@ public:
     int port;
 
     // Constructor to initialize an instance with ip, port, and groupId
-    QueueServer(const std::string& ip, int p, const std::string& group) 
-        : ip_address(ip), port(p), groupID(group) {} 
+    QueueServer(const std::string& ip, int p, const std::string& group)
+    : ip_address(ip), port(p), groupID(group) {}  // <-- Now the order matches the declaration
+
 
     ~QueueServer(){}            // Destructor
 
