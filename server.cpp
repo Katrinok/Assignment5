@@ -235,7 +235,7 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
     for(const auto& pair : connectionsList) {
         Connection* connection = pair.second;
-        if (connection->isServer && (connection->groupID != "Unknown") && (connection->ip_address != "None")) { // If the instance is a server and if the id is not None
+        if (connection->isServer && (connection->groupID != "Unknown") && (connection->ip_add-ress != "None")) { // If the instance is a server and if the id is not None
             response += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
         }
     }
@@ -428,7 +428,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     // If we get QUERYSERVERS respond with SERVERS, and your server followed by all connected servers
     //also if the ip anf port is sent too
     if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) { 
-        // Put together the SERVERS response 
+        // Put together the SERVERS response
+
             std::string servers_response = queryserversResponse(server.groupID, server);
             // Wrap it in STX and ETX
             servers_response = wrapWithSTXETX(servers_response);
@@ -437,6 +438,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 return;
             }
             std::cout << "SERVERS sent: " << servers_response << std::endl;
+            createConnection(server_socket,tokens[1],"",-1,true)
             /// tEST
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
@@ -472,7 +474,17 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::cout << "Message from: "<< tokens[2] << "sent to: " << connection->groupID << std::endl; // DEBUG
         if(connection) { //if connected or in connectionlist
             std::string msg =  message_contents; // Create the message to send
-            send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            // Check if the server has closed connection nad detect broken pipe
+            if (bytes_sent == -1) {
+                if (errno == EPIPE) {
+                    std::cerr << "Detected broken pipe!" << std::endl;
+                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                    closeConnection(connection->sock, openSockets, maxfds);
+                } else {
+                    perror("send");
+                }
+            }
         } else {
             std::cout << "There has been an error sending message to client" << from_group << std::endl;
         }
@@ -548,7 +560,17 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << "No servers found." << std::endl;
             msg = "no server connected";
         }
-        send(server_socket, msg.c_str(), msg.length(), 0);
+        ssize_t bytes_sent = send(server_socket, msg.c_str(), msg.length(),0); // Send the message to the server
+        // Check if the server has closed connection nad detect broken pipe
+        if (bytes_sent == -1) {
+            if (errno == EPIPE) {
+                std::cerr << "Detected broken pipe!" << std::endl;
+                // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                closeConnection(server_socket, openSockets, maxfds);
+            } else {
+                perror("send");
+            }
+        }
         std::cout << "Message sent was: " << msg << std::endl;
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
@@ -559,7 +581,17 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << "Server " << tokens[1] << " is connected: " << tokens[1] << std::endl; // Print out client connected on server
             std::string msg = "SENDMSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
-            send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            // Check if the server has closed connection nad detect broken pipe
+            if (bytes_sent == -1) {
+                if (errno == EPIPE) {
+                    std::cerr << "Detected broken pipe!" << std::endl;
+                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                    closeConnection(connection->sock, openSockets, maxfds);
+                } else {
+                    perror("send");
+                }
+            }
         } else {
             // Here we can store the messege to the messege list have to intertwine with keepalive
             storeMessage(tokens[1], server.groupID, tokens[2]);
@@ -644,7 +676,7 @@ int main(int argc, char* argv[]) {
                 FD_SET(clientSock, &openSockets);
                 // And update the maximum file descriptor
                 maxfds = std::max(maxfds, clientSock) ;
-                sendQueryservers(clientSock, myServer); // senda bara strax
+                sendQueryservers(clientSock, myServer); // sending right away
                 
                 char handshakeBuffer[1025];
                 memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
