@@ -439,7 +439,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
     }
-    std::cout << "print tokens: " << tokens[0] << std::endl; //DEBUG
+    std::cout << "print tokens: " << tokens << std::endl; //DEBUG
     // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
