@@ -235,7 +235,7 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     std::string response =  "SERVERS," + fromgroupID + "," + myServer.ip_address + "," + std::to_string(myServer.port) + ";"; // Should get the info for this server P3_GROUP_20,130.208.243.61,Port
     for(const auto& pair : connectionsList) {
         Connection* connection = pair.second;
-        if (connection->isServer && (connection->groupID != "Unknown") && (connection->ip_add-ress != "None")) { // If the instance is a server and if the id is not None
+        if (connection->isServer && (connection->groupID != "Unknown") && (connection->ip_address != "None")) { // If the instance is a server and if the id is not None
             response += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
         }
     }
