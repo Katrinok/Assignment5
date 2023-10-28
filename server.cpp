@@ -467,8 +467,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     send(server_socket, msg.c_str(), msg.length(), 0);
     std::cout << "Message sent was: " << msg << std::endl;
 
-    
-} else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
+
+    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
         std::cout << "Send message" << std::endl; // bREYTA prentinu
         Connection* connection = isConnected(tokens[1]); // check if connected
@@ -490,6 +490,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent was: " << msg << std::endl;
     } else {
+
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
 }
@@ -627,7 +628,7 @@ int main(int argc, char* argv[]) {
                                 }
                             }
                             if (start_pos < leftoverBuffer.size()) {
-                            // Treat these bytes as a client command
+                                std::cout << "Leftover buffer for client: " << leftoverBuffer << std::endl; //DEBUG
                                 clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                 leftoverBuffer.clear();
                             }
