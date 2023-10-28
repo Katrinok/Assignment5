@@ -408,27 +408,38 @@ void connectToServersVector(std::vector<std::string> servers, myServer server) {
     }
 }
 
-void fetchMessage_helper(int server_socket, int *maxfds, std::string buffer, myServer server) {
-    // Beffer sem kemur inn er segjum Fetch_MSGS,P3_GROUP_20
-    send(server_socket, buffer.c_str(), buffer.length(), 0);
-    std::cout << "Message sent was: " << buffer << std::endl;
-    char messageBuffer[1025];
-    memset(messageBuffer, 0, sizeof(messageBuffer));
-    int messageBytes = recv(server_socket, messageBuffer, sizeof(messageBuffer) - 1, 0);  // This time, we block until we get a response
 
-}
 
-// Gets all the messages for a specific group id
-std::vector<Message> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
+// Gets all the messages for a specific group id in the format TO_GROUP_ID,FROM_GROUP_ID,messasges
+std::vector<std::string> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
+    std::vector<std::string> formattedMessages;
+
     // Check if the groupID exists in the map
     if (messageStore.find(groupID) != messageStore.end()) {
-        return messageStore.at(groupID);
+        for (const Message& msg : messageStore.at(groupID)) {
+            std::string formattedMsg = "," + msg.to_groupID + "," + msg.from_groupID + "," + msg.message_content;
+            formattedMessages.push_back(formattedMsg);
+        }
     }
 
-    // Return an empty vector if no messages found for the given groupID
-    return std::vector<Message>();
+    return formattedMessages;
 }
+//// Búa til fall fyrir status request
+/*std::vector<std::string> getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+    std::vector<std::string> messages_count;
+    for (const std::string msg : messageStore) {
+        
+    }
+    // Check if the groupID exists in the map
+    if (messageStore.find(groupID) != messageStore.end()) {
+        for (const Message& msg : messageStore.at(groupID)) {
+            std::string formattedMsg = "," + msg.to_groupID + "," + msg.from_groupID + "," + msg.message_content;
+            formattedMessages.push_back(formattedMsg);
+        }
+    }
 
+    return formattedMessages;
+}*/
 
 
 // Process command from client on the server
@@ -505,15 +516,36 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 }
             }
         } else {
-            std::cout << "There has been an error sending message to client" << from_group << std::endl;
+            std::cout << "storing messege to " << tokens[1] <<" from " << from_group << std::endl;
+            storeMessage(tokens[1], tokens[2], tokens[3]); // Store the message in the messageStore kannski kanna betur
+            
         }
+
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // If we get FETCH_MSGS then send all messages for this specified group id
-
-        std::string desiredGroupID = tokens[1];
-        std::vector<Message> messagesForGroup = getMessagesForGroup(desiredGroupID, messageStore);
         
+        std::string desiredGroupID = tokens[1]; // Id á þeim sem vill message. Segjum group_12
+        std::vector<std::string> messagesForGroup = getMessagesForGroup(desiredGroupID, messageStore); // create a vector of messages for the group
+        // Each string in the vector is in the TO_GROUP_ID,FROM_GROUP_ID,messasge. That way we cen put it straight to SEND_MSG
+        for(const std::string& msg : messagesForGroup) {
+            // "Add SEND_MSG," to each mesage string to get it on the right format
+            std::string formattedMsg = "SEND MSG" + formattedMsg;
+            
+            ssize_t bytes_sent = send(server_socket, formattedMsg.c_str(), formattedMsg.length(),0); // Send the message to the server
+            std::cout << "Message sent was: " << formattedMsg << std::endl;
+            if (bytes_sent == -1) {
+                if (errno == EPIPE) {
+                    std::cerr << "Detected broken pipe!" << std::endl;
+                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                    closeConnection(server_socket, openSockets, maxfds);
+                } else {
+                    perror("send");
+                }
+            }
+        }
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
+        //Reply with a comma separated list of servers and no. of messages you have for them
+
     
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
     
@@ -521,9 +553,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // If we get a keepalive from a server we print out the server id
         std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << std::endl;
         if(tokens[1] != "0") {
-            // If keepalive is not 0 we send a fetch message to the server to receive messages
-            // Kannski ekki sniðugt
-            //serverCommand(server_socket, openSockets, maxfds, "FETCH_MSGS," + connectionsList[server_socket]->groupID, server); // smá recursion stemming
+            std::cout << "Number of messages from group: "<< connectionsList[server_socket]->groupID << " is: " << tokens[1] << std::endl;
+            //keepAlive_helper(server_socket, openSockets, maxfds, buffer, server);
         } else {
             std::cout << "No Messages from group: "<< connectionsList[server_socket]->groupID << std::endl;
         }
@@ -533,6 +564,21 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }   
 }
 
+
+void keepAlive_helper(int server_socket, fd_set *openSockets, int *maxfds, std::string buffer, myServer server) {
+    // Beffer sem kemur inn er segjum Fetch_MSGS,P3_GROUP_20
+    std::string fetch_msg = "FETCH_MSGS," + connectionsList[server_socket]->groupID; // Create the message to send
+    std::cout << "Message sent was: " << fetch_msg << std::endl;
+    send(server_socket, buffer.c_str(), buffer.length(), 0);
+    // Check if the server has closed connection nad detect broken pipe
+    char messageBuffer[5000];
+    memset(messageBuffer, 0, sizeof(messageBuffer));
+    int messageBytes = recv(server_socket, messageBuffer, sizeof(messageBuffer) - 1, 0);  // This time, we block until we get a response
+    if(messageBytes < 0) {
+        perror("Error receiving message");
+        return;
+    }
+}
 
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -586,8 +632,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
-        std::cout << "Send message" << std::endl; // bREYTA prentinu
         Connection* connection = isConnected(tokens[1]); // check if connected
+        std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
         if(connection) { //if connected or in connectionlist
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
             std::cout << "Message sent was: " << msg << std::endl;
@@ -606,7 +652,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         } else {
             // Here we can store the messege to the messege list have to intertwine with keepalive
             storeMessage(tokens[1], server.groupID, tokens[2]);
-            std::cout << "Client is not connected to server: " << tokens[1] << std::endl;
+            std::cout << "Server is not connected to this server: " << tokens[1] << std::endl;
         }
     
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
