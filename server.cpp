@@ -116,7 +116,7 @@ std::vector<std::string> splitTokens(const std::string& token) {
 
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
 std::map<int, CuteServer*> queuedServers; // Lookup table for per server in queue
-std::vector<Message> messages;
+std::map<std::string, std::vector<Message>> messageStore; // Lookup table for messages stored as vectors with key being group ID
 // Open socket for specified port.
 //
 // Returns -1 if unable to create the socket for any reason.
@@ -268,6 +268,12 @@ Connection* isConnected(const std::string& groupId) {
         }
     }
     return nullptr;  // return nullptr if not connected
+}
+
+// Function that stores messages in the messageStore
+void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
+    Message newMessage(toGroupID, fromGroupID, msg);
+    messageStore[toGroupID].push_back(newMessage);
 }
 
 void sendQueryservers(int server_sock, myServer myServer) {
@@ -434,11 +440,12 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         Connection* connection = isConnected(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
             std::cout << "Client is connected to server: " << tokens[1] << std::endl; // Print out client connected on server
-            std::string msg = "SENDMSG," + tokens[1] + server.groupID + "," + tokens[2]; // Create the message to send
+            std::string msg = "SENDMSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
         } else {
             // Here we can store the messege to the messege list have to intertwine with keepalive
+            storeMessage(tokens[1], server.groupID, tokens[2]);
             std::cout << "Client is not connected to server: " << tokens[1] << std::endl;
         }
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
