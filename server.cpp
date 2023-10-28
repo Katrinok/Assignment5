@@ -29,7 +29,7 @@
 #include <sstream>
 #include <thread>
 #include <map>
-
+#include <set>
 
 #include <unistd.h>
 
@@ -350,13 +350,16 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 }
 
 // Takes in a vector of servers with comma seperated tokens, group_id,
-void connectToServersVector(std::vector<std::string> servers, myServer server) {
+void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
         if (connection_tokens[0] != server.groupID)  {
             if(!isConnected(connection_tokens[0])) {
                 std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
-                connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
+                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
+                FD_SET(socket, openSockets);
+                // And update the maximum file descriptor
+                *maxfds = std::max(*maxfds, socket);
             } else {
                 std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
             }
@@ -411,16 +414,29 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
     return formattedMessages;
 }
 //// Búa til fall fyrir status request
-/*std::vector<std::string> getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
     std::set<std::string> uniqueGroupIDs;
-
+    // Add the group ids uniquely
     for (const auto& pair : messageStore) {
         uniqueGroupIDs.insert(pair.first);  // Set will ensure only unique values are stored
     }
 
-    return formattedMessages;
+    std::vector<std::string>(uniqueGroupIDs.begin(), uniqueGroupIDs.end()); // Convert to a vector
+    std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
+    
+    for (const auto& id : uniqueGroupIDs) {
+        int count = 0;
+        for (const auto& msg : messageStore) {
+            if (id == msg.first) {
+                count++;
+            }
+        }
+        messagesCount += id + std::to_string(count) + ",";
+    }
+
+    return messagesCount;
 }
-*/
+
 
 // Process command from client on the server
 void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -472,7 +488,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << servers_tokens[i] << std::endl; //DEBUG  +
         }
         // Skoða guard um tvítenginu
-        connectToServersVector(servers_tokens, server);
+        connectToServersVector(servers_tokens, server, openSockets, maxfds);
         std::cout << "Ég fer hérna út" << std::endl;
         for (const auto& pair : connectionsList) {
             std::cout << "Socket: " << pair.second->sock<<std::endl;
@@ -529,7 +545,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
-
+        std::string messageCount = "STATUSRESP," + server.groupID + "" + getMessagesCount(messageStore);
+        
     
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
     
