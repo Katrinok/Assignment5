@@ -434,7 +434,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         Connection* connection = isConnected(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
             std::cout << "Client is connected to server: " << tokens[1] << std::endl; // Print out client connected on server
-            std::string msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
+            std::string msg = "SENDMSG," + tokens[1] + server.groupID + "," + tokens[2]; // Create the message to send
+            msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
         } else {
             // Here we can store the messege to the messege list have to intertwine with keepalive
