@@ -117,6 +117,7 @@ std::vector<std::string> splitTokens(const std::string& token) {
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
 std::map<int, CuteServer*> queuedServers; // Lookup table for per server in queue
 std::map<std::string, std::vector<Message>> messageStore; // Lookup table for messages stored as vectors with key being group ID
+std::map<std::string, size_t> currentMessageIndex; // MEssage pointer to the current message in the messageStore
 // Open socket for specified port.
 //
 // Returns -1 if unable to create the socket for any reason.
@@ -274,6 +275,30 @@ Connection* isConnected(const std::string& groupId) {
 void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
     Message newMessage(toGroupID, fromGroupID, msg);
     messageStore[toGroupID].push_back(newMessage);
+    std::cout << "Message stored in messageStore" << std::endl;
+}
+
+// Function that gets the next message for a group if there is any
+std::string getNextMessageForGroup(const std::string& groupID) {
+    // Check if there are messages for the group
+    if (messageStore.count(groupID) > 0) {
+        // If the group doesn't have a current index, initialize it to 0
+        if (currentMessageIndex.count(groupID) == 0) {
+            currentMessageIndex[groupID] = 0;
+        }
+        size_t index = currentMessageIndex[groupID]; // Get the current index for the group
+        // Ensure we're not out of bounds
+        if (index < messageStore[groupID].size()) {
+            std::string msg = messageStore[groupID][index].from_groupID + "," + messageStore[groupID][index].message_content;
+            // Increment the index for next time
+            currentMessageIndex[groupID]++;
+            return msg;
+        } else {
+            // No more messages to send; you can handle this however you want
+            return "No more messages for group: " + groupID;
+        }
+    }
+    return "No messages for group: " + groupID;
 }
 
 void sendQueryservers(int server_sock, myServer myServer) {
@@ -425,21 +450,30 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         *maxfds = std::max(*maxfds, socket);
         //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
     } else if(tokens[0].compare("LISTSERVERS") == 0) {
-        std::cout << "List servers" << std::endl;
-        std::string msg;
+    std::cout << "List servers" << std::endl;
+    std::string msg;
+
+    if(connectionsList.empty()) {
+        msg = "Not connected to anyone";
+    } else {
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
-            msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+            if(connection->isServer) { // Make sure to check if the connection is a server
+                msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+            }
         }
-        send(server_socket, msg.c_str(), msg.length(),0);
-        std::cout << "Message sent was: " << msg << std::endl;
+    }
 
-    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
+    send(server_socket, msg.c_str(), msg.length(), 0);
+    std::cout << "Message sent was: " << msg << std::endl;
+
+    
+} else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
         std::cout << "Send message" << std::endl; // bREYTA prentinu
         Connection* connection = isConnected(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
-            std::cout << "Client is connected to server: " << tokens[1] << std::endl; // Print out client connected on server
+            std::cout << "Server " << tokens[1] << " is connected: " << tokens[1] << std::endl; // Print out client connected on server
             std::string msg = "SENDMSG," + tokens[1] + "," + server.groupID + "," + tokens[2]; // Create the message to send
             msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
             send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
@@ -448,8 +482,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             storeMessage(tokens[1], server.groupID, tokens[2]);
             std::cout << "Client is not connected to server: " << tokens[1] << std::endl;
         }
-    } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
     
+    } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
+        std::cout << "Get message" << std::endl;
+        std::string msg;
+        msg = getNextMessageForGroup(tokens[1]); // Get the next message for our group
+        send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
+        std::cout << "Message sent was: " << msg << std::endl;
     } else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
