@@ -118,7 +118,7 @@ std::vector<std::string> splitTokens(const std::string& token) {
 
 std::map<int, Connection*> connectionsList; // Lookup table for per Client information
 std::map<int, CuteServer*> queuedServers; // Lookup table for per server in queue
-std::map<std::string, std::vector<Message>> messageStore; // Lookup table for messages stored as vectors with key being group ID
+std::map<std::string, std::vector<Message>> messageStore; // Lookup table for messages stored as vectors with key being to_groupID
 std::map<std::string, size_t> currentMessageIndex; // MEssage pointer to the current message in the messageStore
 // Open socket for specified port.
 //
@@ -480,7 +480,9 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Skoða guard um tvítenginu
         connectToServersVector(servers_tokens, server);
         std::cout << "Ég fer hérna út" << std::endl;
-
+        for (const auto& pair : connectionsList) {
+            std::cout << pair.second->groupID << std::endl;
+        }
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
         std::string to_group = tokens[1];
         std::string from_group = tokens[2];
