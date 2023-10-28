@@ -576,7 +576,7 @@ void connectToServersVector(std::vector<std::string> servers, myServer server, f
                 if (bytes_read > 0) {
                     buffer[bytes_read] = '\0';
                     std::string command = extractCommand(buffer);
-                    serverCommand(connectionsList[socket]->sock, openSockets, maxfds, command, server);
+                    std::cout << "Command received: " << command << std::endl;
             } else {
                 std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
             }
