@@ -360,8 +360,16 @@ void connectToServersVector(std::vector<std::string> servers, myServer server, f
                 FD_SET(socket, openSockets);
                 // And update the maximum file descriptor
                 *maxfds = std::max(*maxfds, socket);
+                char buffer[1024];
+                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
+                if (bytes_read > 0) {
+                    buffer[bytes_read] = '\0';
+                    std::string command = extractCommand(buffer);
+                    serverCommand(connectionsList[socket]->sock, openSockets, maxfds, command, server);
             } else {
                 std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
+            }
+            
             }
         }
     }
@@ -489,6 +497,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         // Skoða guard um tvítenginu
         connectToServersVector(servers_tokens, server, openSockets, maxfds);
+        // After this command we should be connected to at least 3 servers
         std::cout << "Ég fer hérna út" << std::endl;
         for (const auto& pair : connectionsList) {
             std::cout << "Socket: " << pair.second->sock<<std::endl;
@@ -545,8 +554,19 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
-        std::string messageCount = "STATUSRESP," + server.groupID + "" + getMessagesCount(messageStore);
+        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + "," + getMessagesCount(messageStore);
         
+        ssize_t bytes_sent = send(server_socket, messageCount.c_str(), messageCount.length(),0); // Send the message to the server
+        std::cout << "STATUSRESP message sent was: " << messageCount << std::endl;
+        if (bytes_sent == -1) {
+            if (errno == EPIPE) {
+                std::cerr << "Detected broken pipe!" << std::endl;
+                // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                closeConnection(server_socket, openSockets, maxfds);
+            } else {
+                perror("send");
+            }
+        }
     
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
     
@@ -648,6 +668,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         msg = getNextMessageForGroup(tokens[1]); // Get the next message for our group
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent was: " << msg << std::endl;
+    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) {
+        serverCommand(server_socket, openSockets, maxfds, tokens[0], server);
     } else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
