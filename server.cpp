@@ -428,9 +428,9 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(),0);
         std::cout << "Message sent was: " << msg << std::endl;
 
-    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
+    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 4)) {
         // If we were to send message to a server that is is the process of sending
-        std::cout << "Send message" << std::endl;
+        std::cout << "Send message" << std::endl; // bREYTA prentinu
         Connection* connection = isConnected(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
             std::cout << "Client is connected to server: " << tokens[1] << std::endl; // Print out client connected on server
