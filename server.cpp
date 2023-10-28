@@ -479,6 +479,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         // Skoða guard um tvítenginu
         connectToServersVector(servers_tokens, server);
+        std::cout << "Ég fer hérna út" << std::endl;
 
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
         std::string to_group = tokens[1];
