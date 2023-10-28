@@ -242,7 +242,7 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
 }
 
 // This sends Keepalive to all connected servers every 60 seconds
-void keepAliveFunction() {
+void keepAliveFunction(fd_set *openSockets, int *maxfds) {
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(60)); // Sleep for 60 seconds
         // Lock the mutex to safely iterate over connectionsList
@@ -255,7 +255,14 @@ void keepAliveFunction() {
                 std::string keepaliveMessage = "KEEPALIVE,0";
                 std::cout << "Sending keepalive to " << connection->groupID << std::endl;
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
-                send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
+                ssize_t bytes_sent = send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
+
+                // Catch if the error the socket was closed
+                if (bytes_sent == -1) {
+                    perror("send");
+                    // Close the socket and cleanup
+                    closeConnection(connection->sock, openSockets, maxfds);
+                }
             } 
         }
         mtx.unlock();
@@ -271,6 +278,17 @@ Connection* isConnected(const std::string& groupId) {
     }
     return nullptr;  // return nullptr if not connected
 }
+// Þetta er fyrir send messages til að finna connection
+Connection* findObject(const std::string& groupId) {
+    for (const auto& pair : connectionsList) {
+        Connection* connection = pair.second;
+        if (connection->groupID == groupId) {
+            return connection;  // return the Connection object if found
+        }
+    }
+    return nullptr;  // return nullptr if not connected
+}
+
 
 // Function that stores messages in the messageStore
 void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
@@ -378,7 +396,7 @@ void connectToServersVector(std::vector<std::string> servers, myServer server) {
         for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
             std::vector<std::string> connection_tokens = splitTokens(servers[i]);
             if (connection_tokens[0] != server.groupID)  {
-                std::cout << "Connecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
+                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
                 connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
             }
     }
@@ -438,12 +456,18 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) { // SEND MSG,<TO GROUP ID>,<FROM GROUP ID>,<Message content>
     // This is if we receive a message from another server
-        //std::string our_group_ID = tokens[1]; // þetta er þá td P3_GROUP_20 
+        std::string to_group = tokens[1]; // þetta er þá td P3_GROUP_20 
         std::string from_group = tokens[2]; // þetta er þá td P3_GROUP_30
         std::string message_contents = tokens[3]; // þetta er þá td "Hello World"
         std::cout << "Message received from " << from_group << ": " << message_contents << std::endl; // DEBUG
-        
-    
+        Connection* connection = findObject(from_group); // check if connected
+        std::cout << "Message from: "<< tokens[2] << "sent to: " << connection->groupID << std::endl; // DEBUG
+        if(connection) { //if connected or in connectionlist
+            std::string msg =  message_contents; // Create the message to send
+            send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+        } else {
+            std::cout << "There has been an error sending message to client" << from_group << std::endl;
+        }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // Hér þurfum við að senda á hóp sem er með group id og socket til að fá messageinn 
 
@@ -591,7 +615,7 @@ int main(int argc, char* argv[]) {
     }
 
     finished = false;
-    std::thread keepAliveThread(keepAliveFunction); // Start the keepalive thread
+    std::thread keepAliveThread(keepAliveFunction, &openSockets, &maxfds);
     while(!finished) {
         // Get modifiable copy of readSockets
         readSockets = exceptSockets = openSockets;
