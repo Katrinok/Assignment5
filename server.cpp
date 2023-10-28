@@ -438,7 +438,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 return;
             }
             std::cout << "SERVERS sent: " << servers_response << std::endl;
-            createConnection(server_socket,tokens[1],"",-1,true)
+            createConnection(server_socket,tokens[1],"",-1,true);
             /// tEST
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
