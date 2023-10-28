@@ -461,14 +461,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             if(connection->isServer) { // Make sure to check if the connection is a server
                 msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
             }
-            else {
-                msg = "No servers connected";
-            }
         }
-
+        if(msg.empty()) { // checks if the msg is empty to print out no servers connected
+            std::cout << "No servers found." << std::endl;
+            msg = "no server connected";
+        }
         send(server_socket, msg.c_str(), msg.length(), 0);
         std::cout << "Message sent was: " << msg << std::endl;
-
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
