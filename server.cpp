@@ -349,31 +349,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     return serverSock;
 }
 
-// Takes in a vector of servers with comma seperated tokens, group_id,
-void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
-    for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
-        std::vector<std::string> connection_tokens = splitTokens(servers[i]);
-        if (connection_tokens[0] != server.groupID)  {
-            if(!isConnected(connection_tokens[0])) {
-                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
-                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
-                FD_SET(socket, openSockets);
-                // And update the maximum file descriptor
-                *maxfds = std::max(*maxfds, socket);
-                char buffer[1024];
-                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
-                if (bytes_read > 0) {
-                    buffer[bytes_read] = '\0';
-                    std::string command = extractCommand(buffer);
-                    serverCommand(connectionsList[socket]->sock, openSockets, maxfds, command, server);
-            } else {
-                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
-            }
-            
-            }
-        }
-    }
-}
 
 /// Functions for message handling
 // Function that stores messages in the messageStore
@@ -568,8 +543,6 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             }
         }
     
-    } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
-    
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         // If we get a keepalive from a server we print out the server id
         std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << std::endl;
@@ -585,6 +558,32 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // prints out the unknown command from the server 
         std::cout << "Unknown command from server " << connectionsList[server_socket]->groupID << ": "  << buffer << std::endl;
     }   
+}
+
+// Takes in a vector of servers with comma seperated tokens, group_id,
+void connectToServersVector(std::vector<std::string> servers, myServer server, fd_set *openSockets, int *maxfds) {
+    for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
+        std::vector<std::string> connection_tokens = splitTokens(servers[i]);
+        if (connection_tokens[0] != server.groupID)  {
+            if(!isConnected(connection_tokens[0])) {
+                std::cout << "\nConnecting to server: " << connection_tokens[0] << " " << connection_tokens[1] << " " << connection_tokens[2] << std::endl; //DEBUG
+                int socket = connectToServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0], server);
+                FD_SET(socket, openSockets);
+                // And update the maximum file descriptor
+                *maxfds = std::max(*maxfds, socket);
+                char buffer[1024];
+                ssize_t bytes_read = recv(socket, buffer, 1024, 0);
+                if (bytes_read > 0) {
+                    buffer[bytes_read] = '\0';
+                    std::string command = extractCommand(buffer);
+                    serverCommand(connectionsList[socket]->sock, openSockets, maxfds, command, server);
+            } else {
+                std::cout << "\nServer: " << connection_tokens[0] << " is already connected. Skipping connection." << std::endl; //DEBUG
+            }
+            
+            }
+        }
+    }
 }
 
 // Commands that are from the client
