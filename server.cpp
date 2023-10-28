@@ -78,11 +78,9 @@ public:
     std::string groupID;
     std::string ip_address;
     int port;
-
     // Constructor to initialize an instance with ip, port, and groupId
-    QueueServer(const std::string& ip, int p, const std::string& group)
-    : ip_address(ip), port(p), groupID(group) {}  // <-- Now the order matches the declaration
-
+    QueueServer(const std::string& group, const std::string& ip, int p )
+    : groupID(group), ip_address(ip), port(p)   {}  // <-- Now the order matches the declaration
 
     ~QueueServer(){}            // Destructor
 
@@ -429,7 +427,7 @@ void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in 
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
         if (connection_tokens[0] != server.groupID)  {
             if(!isConnected(connection_tokens[0])) {
-                serverQueue.push(QueueServer(connection_tokens[1], std::stoi(connection_tokens[2]), connection_tokens[0]));
+                serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
             }
         }
     }
