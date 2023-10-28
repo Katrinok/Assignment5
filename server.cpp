@@ -408,7 +408,26 @@ void connectToServersVector(std::vector<std::string> servers, myServer server) {
     }
 }
 
+void fetchMessage_helper(int server_socket, int *maxfds, std::string buffer, myServer server) {
+    // Beffer sem kemur inn er segjum Fetch_MSGS,P3_GROUP_20
+    send(server_socket, buffer.c_str(), buffer.length(), 0);
+    std::cout << "Message sent was: " << buffer << std::endl;
+    char messageBuffer[1025];
+    memset(messageBuffer, 0, sizeof(messageBuffer));
+    int messageBytes = recv(server_socket, messageBuffer, sizeof(messageBuffer) - 1, 0);  // This time, we block until we get a response
 
+}
+
+// Gets all the messages for a specific group id
+std::vector<Message> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
+    // Check if the groupID exists in the map
+    if (messageStore.find(groupID) != messageStore.end()) {
+        return messageStore.at(groupID);
+    }
+
+    // Return an empty vector if no messages found for the given groupID
+    return std::vector<Message>();
+}
 
 
 
@@ -489,7 +508,10 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << "There has been an error sending message to client" << from_group << std::endl;
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
-        // Hér þurfum við að senda á hóp sem er með group id og socket til að fá messageinn 
+        // If we get FETCH_MSGS then send all messages for this specified group id
+
+        std::string desiredGroupID = tokens[1];
+        std::vector<Message> messagesForGroup = getMessagesForGroup(desiredGroupID, messageStore);
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
     
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() > 4)) { 
@@ -510,26 +532,6 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }   
 }
 
-void fetchMessage_helper(int server_socket, int *maxfds, std::string buffer, myServer server) {
-    // Beffer sem kemur inn er segjum Fetch_MSGS,P3_GROUP_20
-    send(server_socket, buffer.c_str(), buffer.length(), 0);
-    std::cout << "Message sent was: " << buffer << std::endl;
-    char messageBuffer[1025];
-    memset(messageBuffer, 0, sizeof(messageBuffer));
-    int messageBytes = recv(server_socket, messageBuffer, sizeof(messageBuffer) - 1, 0);  // This time, we block until we get a response
-
-}
-
-// Gets all the messages 
-std::vector<Message> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
-    // Check if the groupID exists in the map
-    if (messageStore.find(groupID) != messageStore.end()) {
-        return messageStore.at(groupID);
-    }
-
-    // Return an empty vector if no messages found for the given groupID
-    return std::vector<Message>();
-}
 
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -590,7 +592,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << "Server " << tokens[1] << " is connected: " << std::endl; // Print out client connected on server
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
             std::cout << "Message sent was: " << msg << std::endl;
-            msg = wrapWithSTXETX(buffer); // Wrap the message with STX and ETX
+            msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
             // Check if the server has closed connection nad detect broken pipe
             if (bytes_sent == -1) {
