@@ -31,7 +31,8 @@
 #include <map>
 #include <set>
 #include <queue>
-
+#include <fcntl.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 // fix SOCK_NONBLOCK for OSX
@@ -323,7 +324,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     }
     // If servers are fewer than 15 then connect
-    
+
     int serverSock;
     struct sockaddr_in serverAddr;
     serverSock = socket(AF_INET, SOCK_STREAM, 0);
@@ -331,6 +332,11 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error opening socket");
         return -1;
     }
+
+    // Set the socket to non-blocking
+    int flags = fcntl(serverSock, F_GETFL, 0);
+    fcntl(serverSock, F_SETFL, flags | O_NONBLOCK);
+
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
@@ -340,13 +346,43 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     }
 
     if(connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        perror("Error connecting to server");
+        if(errno != EINPROGRESS) {
+            perror("Error connecting to server");
+            return -1;
+        }
+    }
+
+    // Use select to wait for the connection to complete or timeout
+    fd_set fdset;
+    struct timeval tv;
+    FD_ZERO(&fdset);
+    FD_SET(serverSock, &fdset);
+    tv.tv_sec = 3;  // 5 seconds timeout
+    tv.tv_usec = 0;
+
+    if(select(serverSock + 1, NULL, &fdset, NULL, &tv) == 1) {
+        int so_error;
+        socklen_t len = sizeof(so_error);
+        getsockopt(serverSock, SOL_SOCKET, SO_ERROR, &so_error, &len);
+
+        if(so_error != 0) { // Error during connection
+            perror("Error connecting to server with select");
+            return -1;
+        }
+    } else { // Timeout or other error
+        perror("Connection timeout or select error");
         return -1;
-    } 
-    //Hér sendum við queryservers
-    sendQueryservers(serverSock, myServer);
-    createConnection(serverSock, groupID, ip_address, port, true);
+    }
+
+    // Set the socket back to blocking mode (optional)
+    flags = fcntl(serverSock, F_GETFL, 0);
+    fcntl(serverSock, F_SETFL, flags & ~O_NONBLOCK);
+
+    // Once connected, proceed with your logic
+    //sendQueryservers(serverSock, myServer);
+    //createConnection(serverSock, groupID, ip_address, port, true);
     // Þurfum að adda hér í messengestore pæla seinna
+
     return serverSock;
 }
 
@@ -596,7 +632,11 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, "Unknown", server);
-        
+        if (socket == -1) {
+            std::cout << "Error connecting to server" << std::endl;
+            return;
+        }
+        sendQueryservers(server_socket, server); // sending right away
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
@@ -720,13 +760,8 @@ int main(int argc, char* argv[]) {
         
         if (serverSocket > 0) {
             serverQueue.pop();
-
-            Connection* newConnection = new Connection(serverSocket);
-            newConnection->ip_address = upcomingServer.ip_address;
-            newConnection->port = upcomingServer.port;
-            newConnection->groupID = upcomingServer.groupID;
-            newConnection->isServer = true;
-            connectionsList[serverSocket] = newConnection;
+            sendQueryservers(serverSocket, myServer); // sending right away
+            createConnection(serverSocket, upcomingServer.groupID, upcomingServer.ip_address, upcomingServer.port, true);
 
             FD_SET(serverSocket, &openSockets);
             maxfds = std::max(maxfds, serverSocket);

@@ -135,8 +135,17 @@ int main(int argc, char* argv[])
     {
         bzero(buffer, sizeof(buffer));
         fgets(buffer, sizeof(buffer), stdin);
-    
-       
+
+        // Remove trailing newline character from the input buffer if needed
+        if(buffer[strlen(buffer) - 1] == '\n')
+        {
+            buffer[strlen(buffer) - 1] = '\0';
+        }
+        // if buffer is empty, do not send anything
+        if(strlen(buffer) == 0)
+        {
+            continue;
+        }
         nwrite = send(serverSocket, buffer, strlen(buffer),0);
         std::string timestamp = getTimestamp();
         std::string message = buffer;
