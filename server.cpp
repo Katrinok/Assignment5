@@ -187,25 +187,6 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
     FD_CLR(clientSocket, openSockets);
 }
 
-std::vector<std::string> extractMultiCommands(const char* buffer) {
-    std::vector<std::string> commands;
-    const char STX = 0x02;  // Start of command
-    const char ETX = 0x03;  // End of command
-    const char* STX_ptr = strchr(buffer, STX);
-    const char* ETX_ptr = strchr(buffer, ETX);
-
-    while (STX_ptr && ETX_ptr && STX_ptr < ETX_ptr) {
-        int extractedLength = ETX_ptr - STX_ptr - 1; // Determine the length of the extracted string
-        commands.push_back(std::string(STX_ptr + 1, extractedLength)); // Push the message between STX and ETX to the vector
-        
-        // Move pointers to search for the next STX-ETX pair
-        STX_ptr = strchr(ETX_ptr + 1, STX);
-        ETX_ptr = strchr(STX_ptr, ETX);
-    }
-    return commands;
-}
-
-
 
 std::string extractCommand(const char* buffer) {
     const char STX = 0x02;  // Start of command
@@ -242,7 +223,6 @@ std::string queryserversResponse(const std::string& fromgroupID, myServer myServ
     return response;
 }
 
-// This sends Keepalive to all connected servers every 60 seconds
 void keepAliveFunction(fd_set *openSockets, int *maxfds) {
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(60)); // Sleep for 60 seconds
@@ -251,10 +231,16 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
             // Send the keepalive message to each connection. 
-            // Replace the message below with whatever your protocol needs.
-            if(connection->isServer){
-                std::string keepaliveMessage = "KEEPALIVE,0";
-                std::cout << "Sending keepalive to " << connection->groupID << std::endl;
+            if(connection->isServer) {
+                // Get the number of messages in the store for this group
+                int messageCount = 0;
+                if (messageStore.find(connection->groupID) != messageStore.end()) {
+                    messageCount = messageStore[connection->groupID].size();
+                }
+                
+                // Construct the keepalive message
+                std::string keepaliveMessage = "KEEPALIVE," + std::to_string(messageCount);
+                std::cout << "Sending keepalive to " << connection->groupID << " with " << messageCount << " messages." << std::endl;
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
                 ssize_t bytes_sent = send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
 
@@ -291,35 +277,7 @@ Connection* findObject(const std::string& groupId) {
 }
 
 
-// Function that stores messages in the messageStore
-void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
-    Message newMessage(toGroupID, fromGroupID, msg);
-    messageStore[toGroupID].push_back(newMessage);
-    std::cout << "Message stored in messageStore" << std::endl;
-}
 
-// Function that gets the next message for a group if there is any
-std::string getNextMessageForGroup(const std::string& groupID) {
-    // Check if there are messages for the group
-    if (messageStore.count(groupID) > 0) {
-        // If the group doesn't have a current index, initialize it to 0
-        if (currentMessageIndex.count(groupID) == 0) {
-            currentMessageIndex[groupID] = 0;
-        }
-        size_t index = currentMessageIndex[groupID]; // Get the current index for the group
-        // Ensure we're not out of bounds
-        if (index < messageStore[groupID].size()) {
-            std::string msg = messageStore[groupID][index].from_groupID + "," + messageStore[groupID][index].message_content;
-            // Increment the index for next time
-            currentMessageIndex[groupID]++;
-            return msg;
-        } else {
-            // No more messages to send; you can handle this however you want
-            return "No more messages for group: " + groupID;
-        }
-    }
-    return "No messages for group: " + groupID;
-}
 
 void sendQueryservers(int server_sock, myServer myServer) {
     std::string queryservers = "QUERYSERVERS," + myServer.groupID + ","+ myServer.ip_address + "," + std::to_string(myServer.port); // Send QUERYSERVERS to the server
@@ -372,7 +330,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error opening socket");
         return -1;
     }
-
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
@@ -389,7 +346,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     sendQueryservers(serverSock, myServer);
     createConnection(serverSock, groupID, ip_address, port, true);
     // Þurfum að adda hér í messengestore pæla seinna
-    
     return serverSock;
 }
 
@@ -408,12 +364,42 @@ void connectToServersVector(std::vector<std::string> servers, myServer server) {
     }
 }
 
+/// Functions for message handling
+// Function that stores messages in the messageStore
+void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
+    Message newMessage(toGroupID, fromGroupID, msg);
+    messageStore[toGroupID].push_back(newMessage);
+    std::cout << "Message stored in messageStore" << std::endl;
+}
+
+// Function that gets the next message for a group if there is any
+std::string getNextMessageForGroup(const std::string& groupID) {
+    // Check if there are messages for the group
+    if (messageStore.count(groupID) > 0) {
+        // If the group doesn't have a current index, initialize it to 0
+        if (currentMessageIndex.count(groupID) == 0) {
+            currentMessageIndex[groupID] = 0;
+        }
+        size_t index = currentMessageIndex[groupID]; // Get the current index for the group
+        // Ensure we're not out of bounds
+        if (index < messageStore[groupID].size()) {
+            std::string msg = messageStore[groupID][index].from_groupID + "," + messageStore[groupID][index].message_content;
+            // Increment the index for next time
+            currentMessageIndex[groupID]++;
+            return msg;
+        } else {
+            // No more messages to send; you can handle this however you want
+            return "No more messages for group: " + groupID;
+        }
+    }
+    return "No messages for group: " + groupID;
+}
+
 
 
 // Gets all the messages for a specific group id in the format TO_GROUP_ID,FROM_GROUP_ID,messasges
 std::vector<std::string> getMessagesForGroup(const std::string& groupID, const std::map<std::string, std::vector<Message>>& messageStore) {
     std::vector<std::string> formattedMessages;
-
     // Check if the groupID exists in the map
     if (messageStore.find(groupID) != messageStore.end()) {
         for (const Message& msg : messageStore.at(groupID)) {
@@ -537,6 +523,10 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                     perror("send");
                 }
             }
+        }
+        // Now, clear the messages for the desired group from the messageStore
+        if (messageStore.find(desiredGroupID) != messageStore.end()) {
+            messageStore[desiredGroupID].clear();
         }
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
