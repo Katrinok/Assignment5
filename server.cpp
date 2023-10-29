@@ -669,7 +669,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         } else {
             // Here we can store the messege to the messege list have to intertwine with keepalive
             storeMessage(tokens[1], server.groupID, tokens[2]);
-            std::cout << "Server is not connected to this server: " << tokens[1] << std::endl;
+            std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
         }
     
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
