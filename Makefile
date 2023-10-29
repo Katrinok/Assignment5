@@ -6,7 +6,7 @@ CFLAGS = -Wall
 SERVER_TARGET = tsampgroup20
 SERVER_SOURCE = server.cpp
 
-SERVER2_TARGET = tsampgroup79
+SERVER2_TARGET = tsampgroup155
 SERVER2_SOURCE = server2.cpp
 
 CLIENT_TARGET = chat_client
