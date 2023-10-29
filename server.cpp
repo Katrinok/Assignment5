@@ -531,7 +531,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << message << std::endl; //DEBUG
+        std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << message_contents << std::endl; //DEBUG
 
         // If the connection is our client then send the message straight to them
         if (to_group == server.groupID) {
