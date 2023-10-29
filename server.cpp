@@ -679,6 +679,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             // Else add to queue
             serverQueue.push(QueueServer("Unknown", tokens[1], std::stoi(tokens[2])));
             std::cout << "Max server connections reached. Not connecting to " << tokens[1] << ":" << tokens[2] << std::endl;
+            std::cout << "Appending the server to the back of the queue." << std::endl;
         }
         
 
@@ -743,7 +744,8 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent to the client: " << msg << std::endl; //TIMESTAMP
         
-    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) {
+    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 3)) { // client can send STATUSREQ,FROM_GROUP,TO_GROUP and the server gets STATUSRESP
+        
         serverCommand(server_socket, openSockets, maxfds, tokens[0], server);
     } else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
@@ -904,7 +906,7 @@ int main(int argc, char* argv[]) {
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
-                            std::cout << "Client closed connection: " << connection->sock << std::endl;
+                            std::cout << "Client " << connection->groupID << " closed connection: " << connection->sock << std::endl;
                         } else if (commandBytes > 0){
                             lastMessage.assign(buffer, commandBytes);
                             try{
