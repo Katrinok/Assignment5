@@ -702,7 +702,6 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() >= 3)) { // Sends message to a server if it connected or stores it
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
-        if ((connection != nullptr) || (messageStore.find(tokens[1]) != messageStore.end())) {
             std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
             if(connection) { //if connected or in connectionlist
                 // Take the rest of the tokens in one string as the message
@@ -729,10 +728,6 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 storeMessage(tokens[1], server.groupID, tokens[2]);
                 std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
             }
-        } else {
-            std::cout << "Server" << tokens[1] << " is not recognized. Messages will be stored." << std::endl;
-            storeMessage(tokens[1], server.groupID, tokens[2]);
-        }
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
         std::cout << "Get message" << std::endl;
         std::string msg;
