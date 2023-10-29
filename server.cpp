@@ -651,28 +651,32 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
-        std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
-        if(connection) { //if connected or in connectionlist
-            std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
-            std::cout << "Message sent was: " << msg << std::endl;
-            msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
-            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
-            // Check if the server has closed connection nad detect broken pipe
-            if (bytes_sent == -1) {
-                if (errno == EPIPE) {
-                    std::cerr << "Detected broken pipe!" << std::endl;
-                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
-                    closeConnection(connection->sock, openSockets, maxfds);
-                } else {
-                    perror("send");
+        if (connection != nullptr) {
+            std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
+            if(connection) { //if connected or in connectionlist
+                std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
+                std::cout << "Message sent was: " << msg << std::endl;
+                msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
+                ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+                // Check if the server has closed connection nad detect broken pipe
+                if (bytes_sent == -1) {
+                    if (errno == EPIPE) {
+                        std::cerr << "Detected broken pipe!" << std::endl;
+                        // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                        closeConnection(connection->sock, openSockets, maxfds);
+                    } else {
+                        perror("send");
+                    }
                 }
+            } else {
+                // Here we can store the messege to the messege list have to intertwine with keepalive
+                storeMessage(tokens[1], server.groupID, tokens[2]);
+                std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
             }
         } else {
-            // Here we can store the messege to the messege list have to intertwine with keepalive
             storeMessage(tokens[1], server.groupID, tokens[2]);
-            std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
+            std::cout << "Server" << tokens[1] << " is not recognized. Messages will be stored." << std::endl;
         }
-    
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
         std::cout << "Get message" << std::endl;
         std::string msg;
