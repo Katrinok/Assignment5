@@ -439,25 +439,20 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
 }
 //// Búa til fall fyrir status request
 std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
-    std::set<std::string> uniqueGroupIDs;
-    // Add the group ids uniquely
+    std::string messagesCount; // Initialize a string to store the results
+    // Iterate through the map (messageStore)
     for (const auto& pair : messageStore) {
-        uniqueGroupIDs.insert(pair.first);  // Set will ensure only unique values are stored
+        const auto& groupID = pair.first;  // The key is the to_groupID
+        const auto& messages = pair.second; // The value is the vector of Messages
+        // The count of messages for a group is simply the size of the corresponding vector
+        int count = messages.size();
+        // Append the result to the messagesCount string
+        messagesCount += groupID + "," + std::to_string(count) + ",";
     }
-
-    std::vector<std::string>(uniqueGroupIDs.begin(), uniqueGroupIDs.end()); // Convert to a vector
-    std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
-    
-    for (const auto& id : uniqueGroupIDs) {
-        int count = 0;
-        for (const auto& msg : messageStore) {
-            if (id == msg.first) {
-                count++;
-            }
-        }
-        messagesCount += id + std::to_string(count) + ",";
+    // Optional: If you want to remove the trailing comma
+    if (!messagesCount.empty()) {
+        messagesCount.pop_back();
     }
-
     return messagesCount;
 }
 
@@ -762,7 +757,31 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 }
             }
         }
-    } else {
+    } else if(tokens[0].compare("SENDALL") == 0 && (tokens.size() >= 2)) {
+    // The command might look like: SENDALL,message_content
+    std::string message_contents; // Message contents
+    message_contents = tokens[1]; // Get the message contents
+    // Iterate through the connectionsList and send a message to every server
+    for(auto const& pair : connectionsList) {
+        Connection* connection = pair.second;
+        if((connection->isServer) && (connection->groupID != server.groupID)) { // Ensure it's a server
+            std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + message_contents; // Create the message to send
+            std::cout << "Message sent to server: " << connection->groupID << " was: " << msg << std::endl;
+            msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
+            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
+            // Check if the server has closed connection and detect broken pipe
+            if (bytes_sent == -1) {
+                if (errno == EPIPE) {
+                    std::cerr << "Detected broken pipe when sending to server: " << connection->groupID << std::endl;
+                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                    closeConnection(connection->sock, openSockets, maxfds);
+                } else {
+                    perror("send");
+                }
+            }
+        }
+    }
+} else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
 }
@@ -820,7 +839,7 @@ int main(int argc, char* argv[]) {
             QueueServer upcomingServer = serverQueue.front(); // Get the next server in the queue
             // Error check if the format of the server is incorrect
             // Check if the port is -1 or no IP address is provided
-            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
+            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty() || upcomingServer.groupID == "P3_Group_38") { // If the port is -1 or no IP address is provided we 
                 std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
             }
@@ -885,7 +904,7 @@ int main(int argc, char* argv[]) {
                     std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
                     createConnection(clientSock, ourGroupID, myServer.ip_address, myServer.port, false); // Create a connection from the socket
                     printf("Our Client is connected on server with id: %s\n", ourGroupID.c_str());
-                } else {
+                } else { 
                     std::string extracted = extractCommand(handshakeBuffer);
                     if(extracted.substr(0, 13) == "QUERYSERVERS,") {
                         std::vector<std::string> tokens;
@@ -895,12 +914,16 @@ int main(int argc, char* argv[]) {
                         while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
                             }
-                        if (!isConnected(tokens[1])) {
-                            std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                            createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
-                            serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
+                        if (tokens[1] != "P3_Group_38") {
+                            if (!isConnected(tokens[1])) {
+                                std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
+                                createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
+                                serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
+                            } else {
+                                std::cout << "Server is already connected" << std::endl; //DEBUG
+                            }
                         } else {
-                            std::cout << "Server is already connected" << std::endl; //DEBUG
+                            std::cout << "Refused connection with " << tokens[1] << "." << std::endl; // Banning group 38 because they are stealing messages!!
                         }
                     }
                 }
