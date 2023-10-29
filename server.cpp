@@ -514,10 +514,15 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
         addToQueue(servers_tokens, server); // Add the servers to the queue
 
-    } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
+    } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() > 3)) {
         std::string to_group = tokens[1]; // Id on those the messages are to
         std::string from_group = tokens[2]; // Id on those the messages are from
-        std::string message_contents = tokens[3]; // Messge contents
+        std::string message_contents; // Messge contents
+        // Take the rest of the tokens in one string as the message
+        for(std::vector<std::string>::size_type i = 3; i < tokens.size(); i++) {
+            message_contents += tokens[i];
+        }
+        // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
         std::cout << "Message from: "<< tokens[2] << " sent to: " << tokens[1] << std::endl;
@@ -650,7 +655,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         std::cout << "Message sent was: " << msg << std::endl;
 
-    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
+    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) { // Sends message to a server if it connected or stores it
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
         if ((connection != nullptr) || (messageStore.find(tokens[1]) != messageStore.end())) {
@@ -685,6 +690,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         msg = getNextMessageForGroup(tokens[1]); // Get the next message for our group
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent to the client: " << msg << std::endl; //TIMESTAMP
+        
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) {
         serverCommand(server_socket, openSockets, maxfds, tokens[0], server);
     } else {
