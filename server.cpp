@@ -440,11 +440,31 @@ void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in 
         if (connection_tokens[0] != server.groupID)  {
              if(!isConnected(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
                 serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
+                std::cout << "Added to queue: " << connection_tokens[0] << std::endl;
+            } else {
+                std::cout << "Already connected to or already in queue: " << connection_tokens[0] << std::endl;
             }
         }
     }
 }
+// Handle if we get -1 just a test
+int handleRecv(int sock, char* buffer, int bufsize, std::string& lastMessage) {
+    int commandBytes = recv(sock, buffer, bufsize, MSG_DONTWAIT);
 
+    if (commandBytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK) && !lastMessage.empty()) {
+        // Socket would block, try retransmission
+        send(sock, lastMessage.c_str(), lastMessage.size(), 0);
+        commandBytes = recv(sock, buffer, bufsize, MSG_DONTWAIT);  // Try recv() again
+
+        if (commandBytes == -1) {
+            // Retransmission also failed, close connection
+            close(sock);
+            std::cout << "Connection closed after failed retransmission: " << sock << std::endl;
+            return -1;
+        }
+    }
+    return commandBytes;
+}
 
 
 
@@ -491,21 +511,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
         createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
-        addToQueue(servers_tokens, server);
-        // Print out the server that are to send QUERYSERVERS
-        //std::cout << "\nServers to connect to: "<< std::endl; // DEBUG
-        //for(std::vector<std::string>::size_type i = 1; i < servers_tokens.size(); i++) {
-          //  std::cout << servers_tokens[i] << std::endl; //DEBUG  +
-        //}
-        // Skoða guard um tvítenginu
-        
-        // After this command we should be connected to at least 3 servers
-        std::cout << "Ég fer hérna út" << std::endl;
-        for (const auto& pair : connectionsList) {
-            std::cout << "Socket: " << pair.second->sock<<std::endl;
-            std::cout <<"Group ID: " << pair.second->groupID << ", Ip Address"<< pair.second->ip_address <<", port" << pair.second->port<<std::endl;
+        addToQueue(servers_tokens, server); // Add the servers to the queue
 
-        }
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
         std::string to_group = tokens[1];
         std::string from_group = tokens[2];
@@ -605,7 +612,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
     // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
-        std::cout << "client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
+        std::cout << "Client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, "Unknown", server);
@@ -701,8 +708,9 @@ int main(int argc, char* argv[]) {
     struct sockaddr_in client;
     socklen_t clientLen;
     int max_buffer = 5000;
-    char buffer[max_buffer];              // buffer for reading from clients+
+    char buffer[max_buffer];        // buffer for reading from clients+
     std::string leftoverBuffer;     // buffer for reading from clients
+    std::string lastMessage;        //last message sent
 
     if(argc != 2) {
         printf("Usage: chat_server <ip port>\n");
@@ -726,18 +734,23 @@ int main(int argc, char* argv[]) {
     while(!finished) {
         //// Bætti þessu bulli inn
         if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS ) {
-        QueueServer upcomingServer = serverQueue.front();
-        
+            QueueServer upcomingServer = serverQueue.front();
 
-        int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
-        
-        if (serverSocket > 0) {
+            std::cout << "try connecting from Queue to server" << upcomingServer.groupID << std::endl;
+            int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
+            
+            // Pop the server from the queue regardless of whether the connection succeeded or failed
             serverQueue.pop();
-            createConnection(serverSocket, upcomingServer.groupID, upcomingServer.ip_address, upcomingServer.port, true);
-            FD_SET(serverSocket, &openSockets);
-            maxfds = std::max(maxfds, serverSocket);
-            std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
-        }
+            if (serverSocket > 0) {
+                createConnection(serverSocket, upcomingServer.groupID, upcomingServer.ip_address, upcomingServer.port, true);
+                FD_SET(serverSocket, &openSockets);
+                maxfds = std::max(maxfds, serverSocket);
+                std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
+            } else {
+                // If connection failed, push this server to the back of the queue
+                serverQueue.push(upcomingServer);
+                std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Pushing it to the back of the queue." << std::endl;
+            }
     }
     /// Hér eftir 
         // Get modifiable copy of readSockets
@@ -800,16 +813,17 @@ int main(int argc, char* argv[]) {
                     // Check which client has sent us something
                     //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
-                        int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
+                        //int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
+                        int commandBytes = handleRecv(connection->sock, buffer, sizeof(buffer), lastMessage);
                         if(commandBytes == 0) {
-                            // We don't check for -1 (nothing received) because select()
-                            // only triggers if there is something on the socket for us.
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
                             std::cout << "Client closed connection: " << connection->sock << std::endl;
-                        } else if ((commandBytes > 0) && (commandBytes < max_buffer)) {
+                        } else if (commandBytes > 0){
+                            lastMessage.assign(buffer, commandBytes);
+                            try{
                                 // We have received commandBytes of data, but it can be many commands
-                                std::cout << "Debug áður en ég converta í streng: " << buffer << std::endl; //DEBUG
+                                std::cout << "Appending " << commandBytes << " bytes to leftoverBuffer (current size: " << leftoverBuffer.size() << " bytes)" << std::endl;
                                 leftoverBuffer.append(buffer, commandBytes); // Það kemur length error hérna líklega vegna þess að það er ekki nóg pláss í buffer
                                 size_t start_pos = 0;
                                 // While we have something in the buffer
@@ -823,7 +837,7 @@ int main(int argc, char* argv[]) {
                                         std::string extracted = leftoverBuffer.substr(stx_pos + 1, etx_pos - stx_pos - 1);
                                         std::cout << "\nCommand from server " << connection->groupID << ": " << extracted << std::endl;
                                         serverCommand(connection->sock, &openSockets, &maxfds, extracted, myServer);
-                                        
+                                        lastMessage.clear(); //clears the last stored message
                                         // Move to the position after the found ETX for the next iteration
                                         start_pos = etx_pos + 1;
                                     } else {
@@ -831,11 +845,15 @@ int main(int argc, char* argv[]) {
                                     }
                                 }
                                 if (start_pos < leftoverBuffer.size()) {
-                                    std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
+                                    lastMessage.clear(); // clear the last stored message if it went through  
                                 }
                                 leftoverBuffer.erase(0, start_pos);
+                            } catch (const std::length_error &le) {  // Catching string error that makes the server cras
+                                std::cerr << "Length error: " << le.what() << std::endl;
+                            }
+                        
                         }
                     }
                 }
