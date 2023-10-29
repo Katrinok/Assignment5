@@ -438,20 +438,35 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
     return formattedMessages;
 }
 //// Búa til fall fyrir status request
-std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
-    std::string messagesCount; // Initialize a string to store the results
-    // Iterate through the map (messageStore)
+/*std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+    std::set<std::string> uniqueGroupIDs;
+    // Add the group ids uniquely
     for (const auto& pair : messageStore) {
-        const auto& groupID = pair.first;  // The key is the to_groupID
-        const auto& messages = pair.second; // The value is the vector of Messages
-        // The count of messages for a group is simply the size of the corresponding vector
-        int count = messages.size();
-        // Append the result to the messagesCount string
-        messagesCount += groupID + "," + std::to_string(count) + ",";
+        uniqueGroupIDs.insert(pair.first);  // Set will ensure only unique values are stored
     }
-    // Optional: If you want to remove the trailing comma
-    if (!messagesCount.empty()) {
-        messagesCount.pop_back();
+
+    std::vector<std::string>(uniqueGroupIDs.begin(), uniqueGroupIDs.end()); // Convert to a vector
+    std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
+    
+    for (const auto& id : uniqueGroupIDs) {
+        int count = 0;
+        for (const auto& msg : messageStore) {
+            if (id == msg.first) {
+                count++;
+            }
+        }
+        messagesCount += id + std::to_string(count) + ",";
+    }
+
+    return messagesCount;
+}*/
+std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+    std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
+    
+    for (const auto& pair : messageStore) {
+        const std::string& groupID = pair.first;
+        int count = pair.second.size(); // Directly get the size of the vector for the count
+        messagesCount += "," + groupID + "," + std::to_string(count);  // Using semicolon for separation for clarity
     }
     return messagesCount;
 }
@@ -612,7 +627,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
-        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + "," + getMessagesCount(messageStore);
+        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + getMessagesCount(messageStore);
         
         ssize_t bytes_sent = send(server_socket, messageCount.c_str(), messageCount.length(),0); // Send the message to the server
         std::cout << "STATUSRESP message sent was: " << messageCount << std::endl;
@@ -626,6 +641,10 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             }
         }
     
+    } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() == 2)) { 
+        // Just print out the status response in the server
+        std::cout << "STATUSRESP from" << token[1] << ": " << buffer << "\n" << std::endl;
+
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         if(tokens[1] != "0") {
             std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << "with "<< token[1]<< " messages"<<std::endl;
