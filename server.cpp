@@ -666,14 +666,21 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
         std::cout << "Client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
-        std::string ip_address = tokens[1];
-        int port = std::stoi(tokens[2]);
-        int socket =  connectToServer(ip_address, port, "Unknown", server);
+        // If the maximum servers is not reached connect to the server
+        if (connectionsList.size() < MAX_SERVER_CONNECTIONS) {
+            std::string ip_address = tokens[1];
+            int port = std::stoi(tokens[2]);
+            int socket =  connectToServer(ip_address, port, "Unknown", server);
+            
+            FD_SET(socket, openSockets);
+            // And update the maximum file descriptor
+            *maxfds = std::max(*maxfds, socket);
+        } else {
+            // Else add to queue
+            serverQueue.push(QueueServer("Unknown", tokens[1], std::stoi(tokens[2])));
+            std::cout << "Max server connections reached. Not connecting to " << tokens[1] << ":" << tokens[2] << std::endl;
+        }
         
-        FD_SET(socket, openSockets);
-        // And update the maximum file descriptor
-        *maxfds = std::max(*maxfds, socket);
-        //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
 
     } else if(tokens[0].compare("LISTSERVERS") == 0) {
         std::string msg;
