@@ -357,6 +357,7 @@ void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, 
     Message newMessage(toGroupID, fromGroupID, msg);
     messageStore[toGroupID].push_back(newMessage);
     std::cout << "Message stored in messageStore" << std::endl;
+    std::cout << "Message stored was: " << toGroupID << "," << fromGroupID << "," << msg << std::endl;
 }
 
 // Function that gets the next message for a group if there is any
@@ -652,7 +653,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) {
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
-        if (connection != nullptr) {
+        if ((connection != nullptr) || (messageStore.find(tokens[1]) != messageStore.end())) {
             std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
             if(connection) { //if connected or in connectionlist
                 std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
@@ -669,14 +670,14 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
                         perror("send");
                     }
                 }
-            } else {
+            } else { 
                 // Here we can store the messege to the messege list have to intertwine with keepalive
                 storeMessage(tokens[1], server.groupID, tokens[2]);
                 std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
             }
         } else {
-            storeMessage(tokens[1], server.groupID, tokens[2]);
             std::cout << "Server" << tokens[1] << " is not recognized. Messages will be stored." << std::endl;
+            storeMessage(tokens[1], server.groupID, tokens[2]);
         }
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
         std::cout << "Get message" << std::endl;
