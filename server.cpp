@@ -314,20 +314,17 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
 
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
-    // Here count the servers that are connected
     int serverCount = 0;
-    // Add to the server count if the connection is server
     for (const auto& pair : connectionsList) {
         if (pair.second->isServer) {
             serverCount++;
         }
     }
-    // Compare to maximum server connections
+    
     if(serverCount >= MAX_SERVER_CONNECTIONS) {
         std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
         return -1;
     }
-    // If servers are fewer than 15 then connect
     
     int serverSock;
     struct sockaddr_in serverAddr;
@@ -336,22 +333,58 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error opening socket");
         return -1;
     }
+
+    fcntl(serverSock, F_SETFL, O_NONBLOCK);  // Set socket to non-blocking mode
+
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
     if(inet_pton(AF_INET, ip_address.c_str(), &serverAddr.sin_addr) <= 0) {
         perror("Error converting IP address");
+        close(serverSock);
         return -1;
     }
 
-    if(connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        perror("Error connecting to server");
+    int connectionResult = connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+    if (connectionResult < 0 && errno != EINPROGRESS) {
+        perror("Error initiating connection to server");
+        close(serverSock);
         return -1;
-    } 
-    //Hér sendum við queryservers
+    }
+
+    if (connectionResult < 0) {
+        fd_set waitSet;
+        FD_ZERO(&waitSet);
+        FD_SET(serverSock, &waitSet);
+       
+        struct timeval timeout;
+        timeout.tv_sec = 5;  // 10 seconds timeout
+        timeout.tv_usec = 0;
+
+        int selectResult = select(serverSock + 1, NULL, &waitSet, NULL, &timeout);
+        if (selectResult <= 0) {
+            perror("Connection timeout or error");
+            close(serverSock);
+            return -1;
+        }
+
+        int socketError;
+        socklen_t len = sizeof(socketError);
+        getsockopt(serverSock, SOL_SOCKET, SO_ERROR, &socketError, &len);
+        if (socketError != 0) {
+            perror("Error completing connection");
+            close(serverSock);
+            return -1;
+        }
+    }
+
+    // Set the socket back to blocking mode
+    int flags = fcntl(serverSock, F_GETFL, 0);
+    fcntl(serverSock, F_SETFL, flags & ~O_NONBLOCK);
+
+    // Send query to the servers and create a connection
     sendQueryservers(serverSock, myServer);
     createConnection(serverSock, groupID, ip_address, port, true);
-    // Þurfum að adda hér í messengestore pæla seinna
     return serverSock;
 }
 
@@ -843,7 +876,6 @@ int main(int argc, char* argv[]) {
                             }
                         if (!isConnected(tokens[1])) {
                             std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                            char clientIp[INET_ADDRSTRLEN];
                             createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
                             serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                         } else {
