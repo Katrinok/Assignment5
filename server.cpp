@@ -31,7 +31,8 @@
 #include <map>
 #include <set>
 #include <queue>
-
+#include <fcntl.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 // fix SOCK_NONBLOCK for OSX
@@ -178,14 +179,17 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
      // If this client's socket is maxfds then the next lowest
      // one has to be determined. Socket fd's can be reused by the Kernel,
      // so there aren't any nice ways to do this.
-    close(clientSocket);      
+    
+    close(clientSocket);
     if(*maxfds == clientSocket) {
         for(auto const& p : connectionsList) {
             *maxfds = std::max(*maxfds, p.second->sock);
         }
     }
+    connectionsList.erase(clientSocket); // Should delete the connection object
     // And remove from the list of open sockets.
     FD_CLR(clientSocket, openSockets);
+    
 }
 
 
@@ -494,6 +498,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             servers_response = wrapWithSTXETX(servers_response);
             if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
                 perror("Error sending SERVERS message");
+                // Delete this connection, because we could not send SERVERS
+                closeConnection(server_socket, openSockets, maxfds);
                 return;
             }
             std::cout << "SERVERS sent: " << servers_response << std::endl;
@@ -812,7 +818,7 @@ int main(int argc, char* argv[]) {
                         std::vector<std::string> tokens;
                         std::stringstream stream(extracted);
                         std::string token;
-                        // Split command from client into tokens for parsing
+                        // Split command from server into tokens for parsing
                         while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
                             }
