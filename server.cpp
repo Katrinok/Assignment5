@@ -586,6 +586,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             std::cout << "Number of messages from group: "<< connectionsList[server_socket]->groupID << " is: " << tokens[1] << std::endl;
             std::string fetch_msg = "FETCH_MSGS," + server.groupID; // Create the message to send
             std::cout << "Message sent was: " << fetch_msg << std::endl;
+            fetch_msg = wrapWithSTXETX(fetch_msg); // Wrap the message with STX and ETX
             send(server_socket, fetch_msg.c_str(), fetch_msg.length(), 0); // Send the message to the server
         } else {
             std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " but no messages"<<std::endl;
