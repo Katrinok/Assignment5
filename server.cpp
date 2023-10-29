@@ -189,7 +189,6 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
     
     // And remove from the list of open sockets.
     FD_CLR(clientSocket, openSockets);
-    connectionsList.erase(clientSocket); // Should delete the connection object
     
 }
 
@@ -708,7 +707,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             if(connection) { //if connected or in connectionlist
                 // Take the rest of the tokens in one string as the message
                 std::string message_contents; // Messge contents
-                for(std::vector<std::string>::size_type i = 3; i < tokens.size(); i++) {
+                for(std::vector<std::string>::size_type i = 2; i < tokens.size(); i++) {
                     message_contents += tokens[i];
                 }
                 std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + message_contents; // Create the message to send
