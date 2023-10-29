@@ -532,24 +532,29 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from: "<< tokens[2] << " sent to: " << tokens[1] << std::endl;
-        // Store the message
-        storeMessage(to_group, from_group, message_contents); // Mögulega þurft að cleara eitthvað
-        if(connection) {
-            // If you want to forward or send this message to some other server, continue with your original code
-            std::string msg = message_contents;
-            msg = wrapWithSTXETX(msg);
-            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0);
+        std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << std::endl;
+
+        // If the connection is our client then send the message straight to them
+        if (to_group == server.groupID) {
+            // Add appropriate strings
+            message_contents += "Message from " + from_group + ": " + message_contents;
+            ssize_t bytes_sent = send(connection->sock, message_contents.c_str(), message_contents.length(),0);
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
                     std::cerr << "Detected broken pipe!" << std::endl;
                     closeConnection(connection->sock, openSockets, maxfds);
+                    // If sending to client is unsuccessful
+                    storeMessage(to_group, from_group, message_contents);
                 } else {
                     perror("send");
+                    // If sending to client is unsuccessful
+                    storeMessage(to_group, from_group, message_contents);
                 }
             }
-        } else {
-
+        }else {
+                        // If we get a message that is not meant for us, store in messageStore
+            message_contents += "Message from " + from_group + " stored" + ": " + message_contents;
+            storeMessage(to_group, from_group, message_contents);
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // If we get FETCH_MSGS then send all messages for this specified group id
@@ -760,7 +765,15 @@ int main(int argc, char* argv[]) {
         //// Bætti þessu bulli inn
         if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS) {
             QueueServer upcomingServer = serverQueue.front();
-
+            // Error check if the format of the server is incorrect
+            // Check if the port is -1 or no IP address is provided
+            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) {
+                std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
+                serverQueue.pop();
+                return;
+            }
+            
+            
             std::cout << "try connecting from Queue to server" << upcomingServer.groupID << std::endl;
             int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
             
