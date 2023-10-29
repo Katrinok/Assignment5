@@ -744,9 +744,24 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
         std::cout << "Message sent to the client: " << msg << std::endl; //TIMESTAMP
         
-    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 3)) { // client can send STATUSREQ,FROM_GROUP,TO_GROUP and the server gets STATUSRESP
-        
-        serverCommand(server_socket, openSockets, maxfds, tokens[0], server);
+    } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { // client can send STATUSREQ,TO_GROUP and the server gets STATUSRESP for testing
+        std::string msg;
+        Connection* connection = isConnected(tokens[1]); // check if connected
+        if(connection) { //if connected or in connectionlist
+            msg = "STATUSREQ," + server.groupID;
+            msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
+            ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server to get the status
+            // Check if the server has closed connection nad detect broken pipe
+            if (bytes_sent == -1) {
+                if (errno == EPIPE) {
+                    std::cerr << "Detected broken pipe!" << std::endl;
+                    // Handle the error, e.g., close the socket, remove it from your data structures, etc.
+                    closeConnection(connection->sock, openSockets, maxfds);
+                } else {
+                    perror("send");
+                }
+            }
+        }
     } else {
         std::cout << "Unknown command from client:" << buffer << std::endl;
     } 
