@@ -700,7 +700,8 @@ int main(int argc, char* argv[]) {
     int maxfds;                     // Passed to select() as max fd in set
     struct sockaddr_in client;
     socklen_t clientLen;
-    char buffer[5000];              // buffer for reading from clients+
+    int max_buffer = 5000;
+    char buffer[max_buffer];              // buffer for reading from clients+
     std::string leftoverBuffer;     // buffer for reading from clients
 
     if(argc != 2) {
@@ -801,11 +802,12 @@ int main(int argc, char* argv[]) {
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
                         if(commandBytes == 0) {
+                            // We don't check for -1 (nothing received) because select()
+                            // only triggers if there is something on the socket for us.
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
                             std::cout << "Client closed connection: " << connection->sock << std::endl;
-                        } else {
-                            try{
+                        } else if ((commandBytes > 0) && (commandBytes < max_buffer)) {
                                 // We have received commandBytes of data, but it can be many commands
                                 std::cout << "Debug áður en ég converta í streng: " << buffer << std::endl; //DEBUG
                                 leftoverBuffer.append(buffer, commandBytes); // Það kemur length error hérna líklega vegna þess að það er ekki nóg pláss í buffer
@@ -832,15 +834,8 @@ int main(int argc, char* argv[]) {
                                     std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
-                                    
                                 }
                                 leftoverBuffer.erase(0, start_pos);
-                                
-                            
-                            } catch (const std::length_error &le) {  // Catching string error that makes the server cras
-                                std::cerr << "Length error: " << le.what() << std::endl;
-                            }
-                        
                         }
                     }
                 }
