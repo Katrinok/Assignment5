@@ -31,8 +31,7 @@
 #include <map>
 #include <set>
 #include <queue>
-#include <fcntl.h>
-#include <sys/select.h>
+
 #include <unistd.h>
 
 // fix SOCK_NONBLOCK for OSX
@@ -324,7 +323,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         return -1;
     }
     // If servers are fewer than 15 then connect
-
+    
     int serverSock;
     struct sockaddr_in serverAddr;
     serverSock = socket(AF_INET, SOCK_STREAM, 0);
@@ -332,11 +331,6 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         perror("Error opening socket");
         return -1;
     }
-
-    // Set the socket to non-blocking
-    int flags = fcntl(serverSock, F_GETFL, 0);
-    fcntl(serverSock, F_SETFL, flags | O_NONBLOCK);
-
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
@@ -346,43 +340,13 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
     }
 
     if(connect(serverSock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        if(errno != EINPROGRESS) {
-            perror("Error connecting to server");
-            return -1;
-        }
-    }
-
-    // Use select to wait for the connection to complete or timeout
-    fd_set fdset;
-    struct timeval tv;
-    FD_ZERO(&fdset);
-    FD_SET(serverSock, &fdset);
-    tv.tv_sec = 3;  // 5 seconds timeout
-    tv.tv_usec = 0;
-
-    if(select(serverSock + 1, NULL, &fdset, NULL, &tv) == 1) {
-        int so_error;
-        socklen_t len = sizeof(so_error);
-        getsockopt(serverSock, SOL_SOCKET, SO_ERROR, &so_error, &len);
-
-        if(so_error != 0) { // Error during connection
-            perror("Error connecting to server with select");
-            return -1;
-        }
-    } else { // Timeout or other error
-        perror("Connection timeout or select error");
+        perror("Error connecting to server");
         return -1;
-    }
-
-    // Set the socket back to blocking mode (optional)
-    flags = fcntl(serverSock, F_GETFL, 0);
-    fcntl(serverSock, F_SETFL, flags & ~O_NONBLOCK);
-
-    // Once connected, proceed with your logic
-    //sendQueryservers(serverSock, myServer);
-    //createConnection(serverSock, groupID, ip_address, port, true);
+    } 
+    //Hér sendum við queryservers
+    sendQueryservers(serverSock, myServer);
+    createConnection(serverSock, groupID, ip_address, port, true);
     // Þurfum að adda hér í messengestore pæla seinna
-
     return serverSock;
 }
 
@@ -552,6 +516,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                     perror("send");
                 }
             }
+        } else {
+
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // If we get FETCH_MSGS then send all messages for this specified group id
@@ -561,8 +527,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Each string in the vector is in the TO_GROUP_ID,FROM_GROUP_ID,messasge. That way we cen put it straight to SEND_MSG
         for(const std::string& msg : messagesForGroup) {
             // "Add SEND_MSG," to each mesage string to get it on the right format
-            std::string formattedMsg = "SEND MSG" + msg; // Gæti verið crucial
-            
+            std::string formattedMsg = "SEND_MSG" + msg; // Gæti verið crucial
+            formattedMsg = wrapWithSTXETX(formattedMsg); // Wrap the send msg function to send it
             ssize_t bytes_sent = send(server_socket, formattedMsg.c_str(), formattedMsg.length(),0); // Send the message to the server
             std::cout << "Message sent was: " << formattedMsg << std::endl;
             if (bytes_sent == -1) {
@@ -579,6 +545,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         if (messageStore.find(desiredGroupID) != messageStore.end()) {
             messageStore[desiredGroupID].clear();
         }
+
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
         std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + "," + getMessagesCount(messageStore);
@@ -616,12 +583,12 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 // Commands that are from the client
 void clientCommand(int server_socket, fd_set *openSockets, int *maxfds, 
                   std::string buffer, myServer server) 
-{   
-    
+{
+    buffer.erase(std::remove(buffer.begin(), buffer.end(), '\n'), buffer.end()); // Remove the newline character from the end of the string
     std::vector<std::string> tokens;
     std::stringstream stream(buffer);
     std::string token;
-    
+
     // Split command from client into tokens for parsing
     while(std::getline(stream, token, ',')) {
         tokens.push_back(token);
@@ -632,18 +599,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string ip_address = tokens[1];
         int port = std::stoi(tokens[2]);
         int socket =  connectToServer(ip_address, port, "Unknown", server);
-        if (socket == -1) {
-            std::cout << "Error connecting to server" << std::endl;
-            return;
-        }
-        sendQueryservers(server_socket, server); // sending right away
+        
         FD_SET(socket, openSockets);
         // And update the maximum file descriptor
         *maxfds = std::max(*maxfds, socket);
         //sendQueryservers(server_socket, from_groupID, server); // Send QUERYSERVERS to the server eftir að búa til tengingu 
 
-    } 
-    else if(tokens[0].compare("LISTSERVERS") == 0) {
+    } else if(tokens[0].compare("LISTSERVERS") == 0) {
         std::string msg;
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
@@ -760,9 +722,7 @@ int main(int argc, char* argv[]) {
         
         if (serverSocket > 0) {
             serverQueue.pop();
-            sendQueryservers(serverSocket, myServer); // sending right away
             createConnection(serverSocket, upcomingServer.groupID, upcomingServer.ip_address, upcomingServer.port, true);
-
             FD_SET(serverSocket, &openSockets);
             maxfds = std::max(maxfds, serverSocket);
             std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
@@ -827,6 +787,7 @@ int main(int argc, char* argv[]) {
                 for(auto const& pair : connectionsList) {
                     Connection *connection = pair.second;
                     // Check which client has sent us something
+                    //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
                         if(commandBytes == 0) {
@@ -839,7 +800,6 @@ int main(int argc, char* argv[]) {
                                 leftoverBuffer.append(buffer, commandBytes);
                                 size_t start_pos = 0;
                                 // While we have something in the buffer
-                                leftoverBuffer.erase(std::remove(leftoverBuffer.begin(), leftoverBuffer.end(), '\n'), leftoverBuffer.end());
                                 while(true) {
                                     // Search for STX and ETX in the leftoverBuffer starting from start_pos
                                     size_t stx_pos = leftoverBuffer.find(STX, start_pos);
@@ -857,7 +817,7 @@ int main(int argc, char* argv[]) {
                                         break; // Exit the loop if we can't find a complete command
                                     }
                                 }
-                                if (start_pos < leftoverBuffer.size() && leftoverBuffer.empty() == false) {
+                                if (start_pos < leftoverBuffer.size()) {
                                     std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
@@ -866,7 +826,6 @@ int main(int argc, char* argv[]) {
                             
                             } catch (const std::length_error &le) {  // Catching string error that makes the server cras
                                 std::cerr << "Length error: " << le.what() << std::endl;
-                                leftoverBuffer.clear();  // Clearing buffer to recover
                             }
                         
                         }
