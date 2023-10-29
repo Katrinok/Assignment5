@@ -259,7 +259,7 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
 Connection* isConnected(const std::string& groupId) {
     for (const auto& pair : connectionsList) {
         Connection* connection = pair.second;
-        if ((connection->groupID == groupId) && (connection->isServer)) {
+        if ((connection->groupID == groupId) && (connection->isServer) && (connection->port != -1)) { // Bætti við til að flagga ef við höfum ekki port numer
             return connection;  // return the Connection object if found
         }
     }
@@ -421,13 +421,24 @@ std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& 
     return messagesCount;
 }
 
+/// Checks if the GroupId is not in the queue already 
+bool isGroupIdInQueue(const std::string& groupID) {
+    std::queue<QueueServer> tempQueue = serverQueue;
+    while (!tempQueue.empty()) {
+        if (tempQueue.front().groupID == groupID) {
+            return true;
+        }
+        tempQueue.pop();
+    }
+    return false;
+}
 
 // Takes in a vector of servers with comma seperated tokens, group_id,
 void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in a vector of servers with comma seperated tokens, group_id,
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
         if (connection_tokens[0] != server.groupID)  {
-            if(!isConnected(connection_tokens[0])) {
+             if(!isConnected(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
                 serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
             }
         }
@@ -521,7 +532,6 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
         // If we get FETCH_MSGS then send all messages for this specified group id
-        
         std::string desiredGroupID = tokens[1]; // Id á þeim sem vill message. Segjum group_12
         std::vector<std::string> messagesForGroup = getMessagesForGroup(desiredGroupID, messageStore); // create a vector of messages for the group
         // Each string in the vector is in the TO_GROUP_ID,FROM_GROUP_ID,messasge. That way we cen put it straight to SEND_MSG
@@ -797,7 +807,8 @@ int main(int argc, char* argv[]) {
                         } else {
                             try{
                                 // We have received commandBytes of data, but it can be many commands
-                                leftoverBuffer.append(buffer, commandBytes);
+                                std::cout << "Debug áður en ég converta í streng: " << buffer << std::endl; //DEBUG
+                                leftoverBuffer.append(buffer, commandBytes); // Það kemur length error hérna líklega vegna þess að það er ekki nóg pláss í buffer
                                 size_t start_pos = 0;
                                 // While we have something in the buffer
                                 while(true) {
@@ -821,8 +832,10 @@ int main(int argc, char* argv[]) {
                                     std::cout << "\nClient command: " << leftoverBuffer << std::endl; //DEBUG
                                     clientCommand(connection->sock, &openSockets, &maxfds, leftoverBuffer.c_str(), myServer);
                                     leftoverBuffer.clear();
+                                    
                                 }
                                 leftoverBuffer.erase(0, start_pos);
+                                
                             
                             } catch (const std::length_error &le) {  // Catching string error that makes the server cras
                                 std::cerr << "Length error: " << le.what() << std::endl;
