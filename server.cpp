@@ -41,7 +41,7 @@
 #endif
 
 #define BACKLOG  5          // Allowed length of queue of waiting connections
-const int MAX_SERVER_CONNECTIONS = 5;
+const int MAX_SERVER_CONNECTIONS = 10;
 
 std::mutex mtx;  // Mutex for synchronizing access to connectionsList
 // Class to keep information about this server
@@ -318,7 +318,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         }
     }
     // Compare to maximum server connections
-    if(serverCount >= MAX_SERVER_CONNECTIONS) {
+    if(serverCount >= MAX_SERVER_CONNECTIONS +1) {
         std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
         return -1;
     }
@@ -525,7 +525,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from: "<< tokens[2] << " sent to: " << tokens[1] << std::endl;
+        std::cout << "Message from: "<< from_group << " sent to: " << to_group << std::endl;
         // Store the message
         storeMessage(to_group, from_group, message_contents); // Mögulega þurft að cleara eitthvað
         if(connection) {
@@ -746,7 +746,7 @@ int main(int argc, char* argv[]) {
     std::thread keepAliveThread(keepAliveFunction, &openSockets, &maxfds);
     while(!finished) {
         //// Bætti þessu bulli inn
-        if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS ) {
+        if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS + 1) {
             QueueServer upcomingServer = serverQueue.front();
 
             std::cout << "try connecting from Queue to server" << upcomingServer.groupID << std::endl;
