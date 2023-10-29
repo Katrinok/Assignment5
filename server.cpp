@@ -34,7 +34,6 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <unistd.h>
-#include <signal.h>
 
 // fix SOCK_NONBLOCK for OSX
 #ifndef SOCK_NONBLOCK
@@ -770,8 +769,7 @@ int main(int argc, char* argv[]) {
     char buffer[max_buffer];        // buffer for reading from clients+
     std::string leftoverBuffer;     // buffer for reading from clients
     std::string lastMessage;        //last message sent
-    signal(SIGPIPE, SIG_IGN);       // Ignore SIGPIPE to avoid crashing when a client disconnects abruptly
-
+    
 
     if(argc != 2) {
         printf("Usage: chat_server <ip port>\n");
