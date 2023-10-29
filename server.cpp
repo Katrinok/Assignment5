@@ -502,7 +502,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             return;
         }
         std::cout << "SERVERS sent: " << servers_response << std::endl;
-        createConnection(server_socket,tokens[1],"",-1,true);
+        //createConnection(server_socket,tokens[1],"",-1,true);
             /// tEST
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
@@ -531,12 +531,12 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << std::endl;
+        std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << message_contents << std::endl; //DEBUG
 
         // If the connection is our client then send the message straight to them
         if (to_group == server.groupID) {
             // Add appropriate strings
-            message_contents += "Message from " + from_group + ": " + message_contents;
+            message_contents = "Message from " + from_group + ": " + message_contents;
             ssize_t bytes_sent = send(connection->sock, message_contents.c_str(), message_contents.length(),0);
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
