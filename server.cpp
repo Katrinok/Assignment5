@@ -655,7 +655,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         std::cout << "Message sent was: " << msg << std::endl;
 
-    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() == 3)) { // Sends message to a server if it connected or stores it
+    } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() >= 3)) { // Sends message to a server if it connected or stores it
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
         if ((connection != nullptr) || (messageStore.find(tokens[1]) != messageStore.end())) {
