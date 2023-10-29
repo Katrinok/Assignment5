@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <signal.h>
 
 // fix SOCK_NONBLOCK for OSX
 #ifndef SOCK_NONBLOCK
@@ -248,11 +249,12 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
                 std::cout << "Sending keepalive to " << connection->groupID << " with " << messageCount << " messages." << std::endl;
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
                 ssize_t bytes_sent = send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
-
-                // Catch if the error the socket was closed
                 if (bytes_sent == -1) {
-                    perror("send");
-                    // Close the socket and cleanup
+                    if (errno == EPIPE) {
+                        std::cerr << "Detected broken pipe!" << std::endl;
+                    } else {
+                        perror("send");
+                    }
                     closeConnection(connection->sock, openSockets, maxfds);
                 }
             } 
@@ -494,7 +496,6 @@ int handleRecv(int sock, char* buffer, int bufsize, std::string& lastMessage) {
         // Socket would block, try retransmission
         send(sock, lastMessage.c_str(), lastMessage.size(), 0);
         commandBytes = recv(sock, buffer, bufsize, MSG_DONTWAIT);  // Try recv() again
-
         if (commandBytes == -1) {
             // Retransmission also failed, close connection
             close(sock);
@@ -574,7 +575,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
                     std::cerr << "Detected broken pipe!" << std::endl;
-                    closeConnection(connection->sock, openSockets, maxfds);
+                    
                     // If sending to client is unsuccessful
                     storeMessage(to_group, from_group, message_contents);
                 } else {
@@ -582,6 +583,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                     // If sending to client is unsuccessful
                     storeMessage(to_group, from_group, message_contents);
                 }
+                closeConnection(connection->sock, openSockets, maxfds);
             }
         }else {
                         // If we get a message that is not meant for us, store in messageStore
@@ -768,6 +770,8 @@ int main(int argc, char* argv[]) {
     char buffer[max_buffer];        // buffer for reading from clients+
     std::string leftoverBuffer;     // buffer for reading from clients
     std::string lastMessage;        //last message sent
+    signal(SIGPIPE, SIG_IGN);       // Ignore SIGPIPE to avoid crashing when a client disconnects abruptly
+
 
     if(argc != 2) {
         printf("Usage: chat_server <ip port>\n");
