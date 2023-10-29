@@ -696,7 +696,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
 int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
-    std::string ourGroupID = "P3_GROUP_20";
+    std::string ourGroupID = "P3_GROUP_155";
     char STX = 0x02;  // Start of command
     char ETX = 0x03;  // End of command
 
