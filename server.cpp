@@ -186,9 +186,10 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
             *maxfds = std::max(*maxfds, p.second->sock);
         }
     }
-    connectionsList.erase(clientSocket); // Should delete the connection object
+    
     // And remove from the list of open sockets.
     FD_CLR(clientSocket, openSockets);
+    connectionsList.erase(clientSocket); // Should delete the connection object
     
 }
 
