@@ -492,18 +492,17 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     //also if the ip anf port is sent too
     if((tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 2) || (tokens[0].compare("QUERYSERVERS") == 0 && tokens.size() == 4)) { 
         // Put together the SERVERS response
-
-            std::string servers_response = queryserversResponse(server.groupID, server);
-            // Wrap it in STX and ETX
-            servers_response = wrapWithSTXETX(servers_response);
-            if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
-                perror("Error sending SERVERS message");
-                // Delete this connection, because we could not send SERVERS
-                closeConnection(server_socket, openSockets, maxfds);
-                return;
-            }
-            std::cout << "SERVERS sent: " << servers_response << std::endl;
-            createConnection(server_socket,tokens[1],"",-1,true);
+        std::string servers_response = queryserversResponse(server.groupID, server);
+        // Wrap it in STX and ETX
+        servers_response = wrapWithSTXETX(servers_response);
+        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+            perror("Error sending SERVERS message");
+            // Delete this connection, because we could not send SERVERS
+            closeConnection(server_socket, openSockets, maxfds);
+            return;
+        }
+        std::cout << "SERVERS sent: " << servers_response << std::endl;
+        createConnection(server_socket,tokens[1],"",-1,true);
             /// tEST
     } else if((tokens[0].compare("SERVERS") == 0)) { // example  connect 130.208.243.61 4000 
         // Save the servers in the response, the first one is the one that sent this command
@@ -533,6 +532,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
         std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << std::endl;
+
         // If the connection is our client then send the message straight to them
         if (to_group == server.groupID) {
             // Add appropriate strings
@@ -763,13 +763,12 @@ int main(int argc, char* argv[]) {
     while(!finished) {
         //// Bætti þessu bulli inn
         if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS) {
-            QueueServer upcomingServer = serverQueue.front();
+            QueueServer upcomingServer = serverQueue.front(); // Get the next server in the queue
             // Error check if the format of the server is incorrect
             // Check if the port is -1 or no IP address is provided
-            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) {
+            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
                 std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
-                return;
             }
             
             
@@ -809,6 +808,14 @@ int main(int argc, char* argv[]) {
             if(FD_ISSET(listenSock, &readSockets)) {
                 clientSock = accept(listenSock, (struct sockaddr *)&client, &clientLen);
                 printf("accept***\n");
+
+                // Add new client to the list of open sockets and get ip and port
+                char clientIp[INET_ADDRSTRLEN];
+                memset(clientIp, 0, sizeof(clientIp));
+
+                inet_ntop(AF_INET, &client.sin_addr, clientIp, sizeof(clientIp));
+                int clientPort = ntohs(client.sin_port);
+                printf("Accepted connection from %s:%d\n", clientIp, clientPort);
                 
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
@@ -836,7 +843,8 @@ int main(int argc, char* argv[]) {
                             }
                         if (!isConnected(tokens[1])) {
                             std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
-                            createConnection(clientSock, tokens[1], "None", -1, true); // Create a connection from the socket
+                            char clientIp[INET_ADDRSTRLEN];
+                            createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
                             serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                         } else {
                             std::cout << "Server is already connected" << std::endl; //DEBUG
