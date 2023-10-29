@@ -78,9 +78,10 @@ public:
     std::string groupID;
     std::string ip_address;
     int port;
+    int connectionAttempts;
     // Constructor to initialize an instance with ip, port, and groupId
     QueueServer(const std::string& group, const std::string& ip, int p )
-    : groupID(group), ip_address(ip), port(p)   {}  // <-- Now the order matches the declaration
+    : groupID(group), ip_address(ip), port(p), connectionAttempts(0)   {}  // <-- Now the order matches the declaration
 
     ~QueueServer(){}            // Destructor
 
@@ -296,7 +297,7 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
         delete connectionsList[serverSock];  // free memory
         std::cout << "Updateing existing information" << std::endl;
     }
-
+    // Create a new Connection instance and add it to the connectionsList
     Connection* newConnection = new Connection(serverSock);
     newConnection->ip_address = ip_address;
     newConnection->isServer = isServer;
@@ -318,7 +319,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         }
     }
     // Compare to maximum server connections
-    if(serverCount >= MAX_SERVER_CONNECTIONS +1) {
+    if(serverCount >= MAX_SERVER_CONNECTIONS) {
         std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
         return -1;
     }
@@ -525,7 +526,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from: "<< from_group << " sent to: " << to_group << std::endl;
+        std::cout << "Message from: "<< tokens[2] << " sent to: " << tokens[1] << std::endl;
         // Store the message
         storeMessage(to_group, from_group, message_contents); // Mögulega þurft að cleara eitthvað
         if(connection) {
@@ -661,7 +662,12 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         if ((connection != nullptr) || (messageStore.find(tokens[1]) != messageStore.end())) {
             std::cout << "Send message to: "<< connection->groupID << std::endl; // bREYTA prentinu
             if(connection) { //if connected or in connectionlist
-                std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + tokens[2]; // Create the message to send
+                // Take the rest of the tokens in one string as the message
+                std::string message_contents; // Messge contents
+                for(std::vector<std::string>::size_type i = 3; i < tokens.size(); i++) {
+                    message_contents += tokens[i];
+                }
+                std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + message_contents; // Create the message to send
                 std::cout << "Message sent was: " << msg << std::endl;
                 msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
                 ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
@@ -746,7 +752,7 @@ int main(int argc, char* argv[]) {
     std::thread keepAliveThread(keepAliveFunction, &openSockets, &maxfds);
     while(!finished) {
         //// Bætti þessu bulli inn
-        if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS + 1) {
+        if (!serverQueue.empty() && connectionsList.size() < MAX_SERVER_CONNECTIONS) {
             QueueServer upcomingServer = serverQueue.front();
 
             std::cout << "try connecting from Queue to server" << upcomingServer.groupID << std::endl;
@@ -761,8 +767,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
             } else {
                 // If connection failed, push this server to the back of the queue
-                serverQueue.push(upcomingServer);
-                std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Pushing it to the back of the queue." << std::endl;
+                upcomingServer.connectionAttempts++;
+                if (upcomingServer.connectionAttempts < 2) {
+                    serverQueue.push(upcomingServer);
+                    std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Pushing it to the back of the queue." << std::endl;
+                } else {
+                    std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Not pushing it to the back of the queue." << std::endl;
+                }
             }
     }
     /// Hér eftir 
