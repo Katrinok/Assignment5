@@ -514,17 +514,18 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         addToQueue(servers_tokens, server); // Add the servers to the queue
 
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() == 4)) {
-        std::string to_group = tokens[1];
-        std::string from_group = tokens[2];
-        std::string message_contents = tokens[3];
-        Connection* connection = findObject(from_group); 
+        std::string to_group = tokens[1]; // Id on those the messages are to
+        std::string from_group = tokens[2]; // Id on those the messages are from
+        std::string message_contents = tokens[3]; // Messge contents
+        Connection* connection = findObject(to_group);  // Find the connection object for the sender
 
-        std::cout << "Message from: "<< tokens[2] << "sent to: " << connection->groupID << std::endl;
+        std::cout << "Message from: "<< tokens[2] << " sent to: " << tokens[1] << std::endl;
         // Store the message
-        storeMessage(to_group, from_group, message_contents);
+        storeMessage(to_group, from_group, message_contents); // Mögulega þurft að cleara eitthvað
         if(connection) {
             // If you want to forward or send this message to some other server, continue with your original code
             std::string msg = message_contents;
+            msg = wrapWithSTXETX(msg);
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0);
             if (bytes_sent == -1) {
                 if (errno == EPIPE) {
@@ -677,7 +678,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string msg;
         msg = getNextMessageForGroup(tokens[1]); // Get the next message for our group
         send(server_socket, msg.c_str(), msg.length(), 0); // send the message to the client
-        std::cout << "Message sent was: " << msg << std::endl;
+        std::cout << "Message sent to the client: " << msg << std::endl; //TIMESTAMP
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) {
         serverCommand(server_socket, openSockets, maxfds, tokens[0], server);
     } else {
