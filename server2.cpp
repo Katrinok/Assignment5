@@ -582,10 +582,11 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         if(tokens[1] != "0") {
-            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << "with "<< tokens[1]<< " messages"<<std::endl;
+            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << "with "<< token[1]<< " messages"<<std::endl;
             std::cout << "Number of messages from group: "<< connectionsList[server_socket]->groupID << " is: " << tokens[1] << std::endl;
             std::string fetch_msg = "FETCH_MSGS," + server.groupID; // Create the message to send
             std::cout << "Message sent was: " << fetch_msg << std::endl;
+            fetch_msg = wrapWithSTXETX(fetch_msg); // Wrap the message with STX and ETX
             send(server_socket, fetch_msg.c_str(), fetch_msg.length(), 0); // Send the message to the server
         } else {
             std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " but no messages"<<std::endl;
@@ -696,7 +697,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
 int main(int argc, char* argv[]) {
     // Messages format
     int this_port = atoi(argv[1]);
-    std::string ourGroupID = "P3_GROUP_155";
+    std::string ourGroupID = "P3_GROUP_20";
     char STX = 0x02;  // Start of command
     char ETX = 0x03;  // End of command
 
@@ -868,6 +869,6 @@ int main(int argc, char* argv[]) {
             }
         }
     } 
-    keepAliveThread.join(); // HEY
+    keepAliveThread.join();
 }
                             
