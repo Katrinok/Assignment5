@@ -311,17 +311,18 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
     newConnection->groupID = receivedGroupID;  // Set the group ID in the Connection instance
     connectionsList[serverSock] = newConnection;
 }
-
-
+// returns the number of server connections
+int countServerConnections(const std::map<int, Connection*>& connectionsList) {
+    int count = 0;
+    for(const auto& pair : connectionsList) {
+        if(pair.second->isServer) count++;
+    }
+    return count;
+}
 
 // A function that makes the server connect to another server
 int connectToServer(const std::string& ip_address, int port, std::string groupID, myServer myServer) {
-    int serverCount = 0;
-    for (const auto& pair : connectionsList) {
-        if (pair.second->isServer) {
-            serverCount++;
-        }
-    }
+    int serverCount = countServerConnections(connectionsList); // returns the number of server connections
     
     if(serverCount >= MAX_SERVER_CONNECTIONS) {
         std::cerr << "Max server connections reached. Not connecting to " << ip_address << ":" << port << std::endl;
@@ -518,7 +519,15 @@ int handleRecv(int sock, char* buffer, int bufsize, std::string& lastMessage, fd
 }
 
 
-
+int getRandomServerSocket(const std::map<int, Connection*>& connectionsList) {
+    std::vector<int> serverSockets;
+    for(const auto& pair : connectionsList) {
+        if(pair.second->isServer) serverSockets.push_back(pair.first);
+    }
+    if(serverSockets.empty()) return -1; // No server connection
+    int randomIndex = rand() % serverSockets.size();
+    return serverSockets[randomIndex];
+}
 
 // Process command from client on the server
 void serverCommand(int server_socket, fd_set *openSockets, int *maxfds, 
@@ -913,14 +922,24 @@ int main(int argc, char* argv[]) {
 
                 inet_ntop(AF_INET, &client.sin_addr, clientIp, sizeof(clientIp));
                 int clientPort = ntohs(client.sin_port);
-                printf("Accepted connection from %s:%d\n", clientIp, clientPort);
+                printf("Accepted connection from %s: %d\n", clientIp, clientPort);
                 
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
                 // And update the maximum file descriptor
-                maxfds = std::max(maxfds, clientSock) ;
+                maxfds = std::max(maxfds, clientSock);
+
+                int connectedServers = countServerConnections(connectionsList);  // Assume countServers() returns the number of servers currently connected
+                if (connectedServers >= MAX_SERVER_CONNECTIONS) {
+                    // If we've reached the max server limit
+                    int randomServerSock = getRandomServerSocket(connectionsList);  // Assume this function returns the socket of a random server
+                    std::cout << "Disconnected from a server "<< connectionsList[randomServerSock]->groupID << " to make space for a new one." << std::endl;
+                    closeConnection(randomServerSock, &openSockets, &maxfds);
+                    connectionsList.erase(randomServerSock);  // Assume this function removes the server from the connectionsList
+                    
+                }
+
                 sendQueryservers(clientSock, myServer); // sending right away
-                
                 char handshakeBuffer[1025];
                 memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
                 int handshakeBytes = recv(clientSock, handshakeBuffer, sizeof(handshakeBuffer) - 1, 0);  // This time, we block until we get a response
@@ -940,18 +959,15 @@ int main(int argc, char* argv[]) {
                         while(std::getline(stream, token, ',')) {
                                 tokens.push_back(token);
                             }
-                        if (tokens[1] != "P3_Group_38") {
-                            if (!isConnected(tokens[1])) {
-                                // If the server is not in the conenction list
-                                createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
-                                serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
-                            } else {
-                                std::cout << "Server is already connected." << std::endl; //DEBUG
-                            }
+
+                        if (!isConnected(tokens[1])) {
+                            // If the server is not in the conenction list
+                            createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
+                            serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                         } else {
-                            closeConnection(clientSock, &openSockets, &maxfds);
-                            std::cout << "Refused connection with " << tokens[1] << "." << std::endl; // Banning group 38 because they are stealing too many messages!!
+                            std::cout << "Server is already connected." << std::endl; //DEBUG
                         }
+                    
                     }
                 }
                 printf("Client connected on server: %d\n", clientSock);
