@@ -487,7 +487,7 @@ bool isGroupIdInQueue(const std::string& groupID) {
 void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in a vector of servers with comma seperated tokens, group_id,
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
-        if (connection_tokens[0] != server.groupID)  {
+        if (connection_tokens[0] != server.groupID && connection_tokens[0] != "P3_Group_38")  {
              if(!isConnected(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
                 serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
                 std::cout << "Added to queue: " << connection_tokens[0] << std::endl;
@@ -631,10 +631,10 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { 
         //Reply with a comma separated list of servers and no. of messages you have for them
-        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + getMessagesCount(messageStore);
+        std::string response = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + getMessagesCount(messageStore);
         
-        ssize_t bytes_sent = send(server_socket, messageCount.c_str(), messageCount.length(),0); // Send the message to the server
-        std::cout << "STATUSRESP message sent was: " << messageCount << std::endl;
+        ssize_t bytes_sent = send(server_socket, response.c_str(), response.length(),0); // Send the message to the server
+        std::cout << "STATUSRESP message sent was: " << response << std::endl;
         if (bytes_sent == -1) {
             if (errno == EPIPE) {
                 std::cerr << "Detected broken pipe!" << std::endl;
@@ -648,6 +648,13 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("STATUSRESP") == 0 && (tokens.size() == 2)) { 
         // Just print out the status response in the server
         std::cout << "STATUSRESP from" << token[1] << ": " << buffer << "\n" << std::endl;
+        
+        //DEBUG
+        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + getMessagesCount(messageStore);
+        
+        std::cout << "--------> OUR STATUSRESP message sent was: " << messageCount << std::endl;
+
+
 
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         if(tokens[1] != "0") {
@@ -862,7 +869,7 @@ int main(int argc, char* argv[]) {
             QueueServer upcomingServer = serverQueue.front(); // Get the next server in the queue
             // Error check if the format of the server is incorrect
             // Check if the port is -1 or no IP address is provided
-            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty() || upcomingServer.groupID == "P3_Group_38") { // If the port is -1 or no IP address is provided we 
+            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
                 std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
             }
@@ -945,6 +952,7 @@ int main(int argc, char* argv[]) {
                                 std::cout << "Server is already connected" << std::endl; //DEBUG
                             }
                         } else {
+                            closeConnection(clientSock, &openSockets, &maxfds);
                             std::cout << "Refused connection with " << tokens[1] << "." << std::endl; // Banning group 38 because they are stealing messages!!
                         }
                     }
