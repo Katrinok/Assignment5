@@ -830,7 +830,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     }
 } else {
-        std::cout << "Unknown command from client:" << buffer << std::endl;
+        std::cout << "Unknown command from client " << connectionsList[server_socket]->groupID << ": " << buffer << std::endl;
     } 
 }
 
@@ -888,7 +888,7 @@ int main(int argc, char* argv[]) {
             QueueServer upcomingServer = serverQueue.front(); // Get the next server in the queue
             // Error check if the format of the server is incorrect
             // Check if the port is -1 or no IP address is provided
-            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
+            if (upcomingServer.port == -1 || upcomingServer.ip_address.empty() || upcomingServer.port == myServer.port) { // If the port is -1 or no IP address is provided we 
                 std::cout << "Invalid data for server " << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
                 continue;
@@ -937,8 +937,8 @@ int main(int argc, char* argv[]) {
                 memset(clientIp, 0, sizeof(clientIp));
 
                 inet_ntop(AF_INET, &client.sin_addr, clientIp, sizeof(clientIp));
-                int clientPort = ntohs(client.sin_port);
-                printf("Accepted connection from %s: %d\n", clientIp, clientPort);
+                //int clientPort = ntohs(client.sin_port);
+                printf("Accepted connection from %s: %d\n", clientIp, clientSock);
                 
                 // Add new client to the list of open sockets
                 FD_SET(clientSock, &openSockets);
@@ -978,7 +978,7 @@ int main(int argc, char* argv[]) {
 
                         if (!isConnected(tokens[1])) {
                             // If the server is not in the conenction list
-                            createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
+                            createConnection(clientSock, tokens[1], clientIp, -1, true); // Create a connection from the socket
                             serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                         } else {
                             std::cout << "Server is already connected." << std::endl; //DEBUG
