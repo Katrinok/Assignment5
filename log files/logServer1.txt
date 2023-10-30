@@ -1198,3 +1198,760 @@ Command from server P3_Group_38: KEEPALIVE,0
 Keepalive received from P3_Group_38 but no messages.
 Client P3_GROUP_20 closed connection: 4
 
+Command from server P3_GROUP_8: KEEPALIVE,0
+Keepalive received from P3_GROUP_8 but no messages.
+Sending keepalive to P3_GROUP_8 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_8: KEEPALIVE,0
+Keepalive received from P3_GROUP_8 but no messages.
+Sending keepalive to P3_GROUP_8 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_8: KEEPALIVE,0
+Keepalive received from P3_GROUP_8 but no messages.
+Sending keepalive to P3_GROUP_8 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_8: KEEPALIVE,0
+Keepalive received from P3_GROUP_8 but no messages.
+Sending keepalive to P3_GROUP_8 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+accept***
+Accepted connection from 130.208.243.61: 37120
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;P3_GROUP_8,130.208.243.61,47764;P3_Group_38,194.144.191.50,8120;
+Client connected on server: 4
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server P3_GROUP_8: KEEPALIVE,0
+Keepalive received from P3_GROUP_8 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to P3_GROUP_8 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: QUERYSERVERS,P3_Group_38
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;P3_GROUP_8,130.208.243.61,47764;P3_Group_38,194.144.191.50,8120;
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Client P3_GROUP_8 closed connection: 6
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+accept***
+Accepted connection from 10.3.17.190: 64076
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Secret client Handshake Received
+Our Client is connected on server with id: P3_GROUP_20
+Client connected on server: 6
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+
+Command from server Unknown: QUERYSERVERS,ORACLE
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;P3_Group_38,194.144.191.50,8120;
+
+Command from server Unknown: SERVERS,ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_29,130.208.244.96,4064;Instr_3,130.208.243.61,4003;P3_GROUP_666,130.208.243.61,4006;P3_GROUP_20,130.208.243.61,4077;
+Added to queue: NUMBER
+Added to queue: P3_GROUP_29
+Added to queue: Instr_3
+Added to queue: P3_GROUP_666
+Try connecting to server NUMBER from queue.
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Try connecting to server P3_GROUP_29 from queue.
+Connection timeout or error: Operation now in progress
+Failed to connect to server P3_GROUP_29. Pushing it to the back of the queue.
+Client P3_GROUP_20 closed connection: 6
+
+Command from server NUMBER: QUERYSERVERS,NUMBER
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;
+
+Command from server NUMBER: SERVERS,NUMBER,130.208.243.61,4005;Instr_1,130.208.243.61,4001;ORACLE,130.208.243.61,4004;P3_GROUP_666,130.208.243.61,4006;P3_GROUP_68,130.208.243.61,4051;P3_GROUP_20,130.208.243.61,4077;
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Try connecting to server Instr_3 from queue.
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Try connecting to server P3_GROUP_666 from queue.
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Try connecting to server P3_GROUP_29 from queue.
+Connection timeout or error: Operation now in progress
+Failed to connect to server P3_GROUP_29 the second time. Not pushing it to the back of the queue.
+
+Command from server Instr_3: QUERYSERVERS,Instr_3
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_666,130.208.243.61,4006;P3_Group_38,194.144.191.50,8120;
+
+Command from server Instr_3: SERVERS,Instr_3,130.208.243.61,4003;P3_GROUP_29,130.208.244.96,4064;P3_Group_38,194.144.191.50,8120;ORACLE,130.208.243.61,4004;Instr_2,130.208.243.61,4002;P3_Group_19,130.208.243.61,4011;P3_GROUP_30,130.208.243.61,4021;P3_GROUP_666,130.208.243.61,4006;P3_GROUP_20,130.208.243.61,4077;P3_GROUP_77,192.168.150.4,4100;
+Client P3_GROUP_666 closed connection: 10
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server NUMBER: SEND_MSG,P3_GROUP_20,NUMBER,
+21582c6c30be1217322cdb9aebaf4a59
+Message from NUMBER sent to P3_GROUP_20: 
+21582c6c30be1217322cdb9aebaf4a59
+Message stored was: P3_GROUP_20, NUMBER, 
+21582c6c30be1217322cdb9aebaf4a59Message from NUMBER stored for P3_GROUP_20: 
+21582c6c30be1217322cdb9aebaf4a59
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server P3_Group_38: QUERYSERVERS,P3_Group_38
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+accept***
+Accepted connection from 10.2.17.63: 49831
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;P3_GROUP_30,130.208.243.61,37120;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,10.2.17.63,49831;P3_Group_38,194.144.191.50,8120;
+Client connected on server: 10
+
+Command from server P3_GROUP_12: SERVERS,P3_GROUP_12,10.2.17.63,4001;P3_GROUP_20,130.208.243.61,4077
+;
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server P3_GROUP_12: STATUSREQ,P3_GROUP_12
+STATUSRESP message sent was: STATUSRESP,P3_GROUP_20,P3_GROUP_12,P3_GROUP_20,1,P3_GROUP_36,1,P3_GROUP_38,1,P3_GROUP_39,1,P3_Group_50,1
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Client P3_GROUP_30 closed connection: 4
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+
+Command from server P3_GROUP_12: SEND_MSG,P3_GROUP_20,P3_GROUP_12,Hiiii
+ 
+Message from P3_GROUP_12 sent to P3_GROUP_20: Hiiii
+ 
+Message stored was: P3_GROUP_20, P3_GROUP_12, Hiiii
+ Message from P3_GROUP_12 stored for P3_GROUP_20: Hiiii
+ 
+accept***
+Accepted connection from 153.92.142.83: 49360
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Client connected on server: 4
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server NUMBER: SEND_MSG,P3_GROUP_20,NUMBER,
+3ca14c518d1bf901acc339e7c9cd6d7f
+Message from NUMBER sent to P3_GROUP_20: 
+3ca14c518d1bf901acc339e7c9cd6d7f
+Message stored was: P3_GROUP_20, NUMBER, 
+3ca14c518d1bf901acc339e7c9cd6d7fMessage from NUMBER stored for P3_GROUP_20: 
+3ca14c518d1bf901acc339e7c9cd6d7f
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+accept***
+Accepted connection from 130.208.243.61: 53618
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,10.2.17.63,49831;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+Client connected on server: 12
+
+Command from server P3_GROUP_69: SERVERS,P3_GROUP_69,130.208.243.61,4080;Instr_1,130.208.243.61,4001;NUMBER,130.208.243.61,4005;Instr_2,130.208.243.61,4002;P3_Group_38,194.144.191.50,8120;P3_GROUP_28,153.92.142.83,4069;P3_GROUP_30,130.208.243.61,4021;P3_GROUP_666,130.208.243.61,4006;P3_GROUP_100,130.208.243.61,4069;ORACLE,130.208.243.61,4004;P3_GROUP_20,130.208.243.61,4077;
+accept***
+Accepted connection from 130.208.243.61: 53630
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,10.2.17.63,49831;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,53630;
+Client connected on server: 13
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server P3_GROUP_12: STATUSREQ,P3_GROUP_12
+STATUSRESP message sent was: STATUSRESP,P3_GROUP_20,P3_GROUP_12,P3_GROUP_20,1,P3_GROUP_36,1,P3_GROUP_38,1,P3_GROUP_39,1,P3_Group_50,1
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_Group_38: QUERYSERVERS,P3_Group_38
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,10.2.17.63,49831;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,53630;
+Client P3_GROUP_12 closed connection: 10
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+Client P3_GROUP_30 closed connection: 13
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+accept***
+Accepted connection from 130.208.243.61: 53522
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,130.208.243.61,53522;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+Client connected on server: 10
+
+Command from server P3_GROUP_12: SERVERS,P3_GROUP_12,130.208.243.61,4068;P3_GROUP_20,130.208.243.61,4077
+;
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server NUMBER: SEND_MSG,P3_GROUP_20,NUMBER,
+37c09709af3da468f7a1bc723e943ec7
+Message from NUMBER sent to P3_GROUP_20: 
+37c09709af3da468f7a1bc723e943ec7
+Message stored was: P3_GROUP_20, NUMBER, 
+37c09709af3da468f7a1bc723e943ec7Message from NUMBER stored for P3_GROUP_20: 
+37c09709af3da468f7a1bc723e943ec7
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server Instr_3: QUERYSERVERS,Instr_3
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,130.208.243.61,53522;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: QUERYSERVERS,ORACLE
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,130.208.243.61,53522;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+
+Command from server NUMBER: QUERYSERVERS,NUMBER
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,130.208.243.61,53522;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server NUMBER: SEND_MSG,P3_GROUP_20,NUMBER,
+d98a07f84921b24ee30f86fd8cd85c3c
+Message from NUMBER sent to P3_GROUP_20: 
+d98a07f84921b24ee30f86fd8cd85c3c
+Message stored was: P3_GROUP_20, NUMBER, 
+d98a07f84921b24ee30f86fd8cd85c3cMessage from NUMBER stored for P3_GROUP_20: 
+d98a07f84921b24ee30f86fd8cd85c3c
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server ORACLE: SEND_MSG,P3_Group_86,ORACLE,
+
+Les sanglots longs des violons de l’automne 
+Message from ORACLE sent to P3_Group_86: 
+
+Les sanglots longs des violons de l’automne 
+Message stored was: P3_Group_86, ORACLE, 
+
+Les sanglots longs des violons de l’automne Message from ORACLE stored for P3_Group_86: 
+
+Les sanglots longs des violons de l’automne 
+
+Command from server ORACLE: SEND_MSG,P3_GROUP_20,ORACLE,
+
+“Writing in C or C++ is like running a chain saw with all the safety guards removed.”
+Bob Gray 
+Message from ORACLE sent to P3_GROUP_20: 
+
+“Writing in C or C++ is like running a chain saw with all the safety guards removed.”
+Bob Gray 
+Message stored was: P3_GROUP_20, ORACLE, 
+
+“Writing in C or C++ is like running a chain saw with all the safety guards removed.”
+Bob Gray Message from ORACLE stored for P3_GROUP_20: 
+
+“Writing in C or C++ is like running a chain saw with all the safety guards removed.”
+Bob Gray 
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+
+Command from server P3_GROUP_12: SEND_MSG,P3_GROUP_20,P3_GROUP_12,Hiiii
+ 
+Message from P3_GROUP_12 sent to P3_GROUP_20: Hiiii
+ 
+Message stored was: P3_GROUP_20, P3_GROUP_12, Hiiii
+ Message from P3_GROUP_12 stored for P3_GROUP_20: Hiiii
+ 
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server P3_GROUP_12: STATUSREQ,P3_GROUP_12
+STATUSRESP message sent was: STATUSRESP,P3_GROUP_20,P3_GROUP_12,P3_GROUP_20,1,P3_GROUP_36,1,P3_GROUP_38,1,P3_GROUP_39,1,P3_Group_50,1,P3_Group_86,1
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_Group_38: QUERYSERVERS,P3_Group_38
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_GROUP_12,130.208.243.61,53522;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_GROUP_12 with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server P3_GROUP_12: KEEPALIVE,0
+Keepalive received from P3_GROUP_12 but no messages.
+Client P3_GROUP_12 closed connection: 10
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+accept***
+Accepted connection from 10.3.17.190: 64113
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+Secret client Handshake Received
+Our Client is connected on server with id: P3_GROUP_20
+Client connected on server: 10
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+accept***
+Accepted connection from 130.208.243.61: 46712
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,46712;
+Client connected on server: 13
+
+Command from server P3_GROUP_30: SERVERS,P3_GROUP_30,130.208.243.61,4021;Instr_1,130.208.243.61,4001;Instr_2,130.208.243.61,4002;P3_GROUP_100,130.208.243.61,4069;P3_Group_19,130.208.243.61,4011;P3_GROUP_17,130.208.243.61,4066;P3_GROUP_6,130.208.243.61,4006;P3_GROUP_69,130.208.243.61,4080;Instr_3,130.208.243.61,4003;P3_GROUP_20,130.208.243.61,4077;
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Get message
+Message sent to the client: NUMBER,
+21582c6c30be1217322cdb9aebaf4a59Message from NUMBER stored for P3_GROUP_20: 
+21582c6c30be1217322cdb9aebaf4a59
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server P3_Group_38: QUERYSERVERS,P3_Group_38
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,46712;
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+Get message
+Message sent to the client: P3_GROUP_12,Hiiii
+ Message from P3_GROUP_12 stored for P3_GROUP_20: Hiiii
+ 
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+Get message
+Message sent to the client: NUMBER,
+3ca14c518d1bf901acc339e7c9cd6d7fMessage from NUMBER stored for P3_GROUP_20: 
+3ca14c518d1bf901acc339e7c9cd6d7f
+Get message
+Message sent to the client: NUMBER,
+37c09709af3da468f7a1bc723e943ec7Message from NUMBER stored for P3_GROUP_20: 
+37c09709af3da468f7a1bc723e943ec7
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+accept***
+Accepted connection from 10.2.17.88: 43890
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,46712;P3_GROUP_699,10.2.17.88,43890;
+Client connected on server: 14
+
+Command from server P3_GROUP_699: SERVERS,P3_GROUP_699,10.2.17.88,4040;Instr_1,130.208.243.61,4001;NUMBER,130.208.243.61,4005;Instr_2,130.208.243.61,4002;P3_Group_38,194.144.191.50,8120;P3_GROUP_30,130.208.243.61,4021;P3_GROUP_18,130.208.243.61,4064;P3_GROUP_6,130.208.243.61,4006;P3_GROUP_69,130.208.243.61,4080;P3_GROUP_100,130.208.243.61,4069;ORACLE,130.208.243.61,4004;P3_GROUP_20,130.208.243.61,4077;
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+Sending keepalive to Instr_3 with 0 messages.
+Sending keepalive to ORACLE with 0 messages.
+Sending keepalive to NUMBER with 0 messages.
+Sending keepalive to P3_Group_38 with 0 messages.
+Sending keepalive to P3_GROUP_69 with 0 messages.
+Sending keepalive to P3_GROUP_30 with 0 messages.
+Sending keepalive to P3_GROUP_699 with 0 messages.
+accept***
+Accepted connection from 46.239.223.189: 54730
+Sending Queryservers message: QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+
+SERVERS sent: SERVERS,P3_GROUP_20,130.208.243.61,4077;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;NUMBER,130.208.243.61,4005;P3_Group_38,194.144.191.50,8120;P3_GROUP_69,130.208.243.61,53618;P3_GROUP_30,130.208.243.61,46712;P3_GROUP_699,10.2.17.88,43890;P3_GROUP_99,46.239.223.189,54730;
+Client connected on server: 15
+
+Command from server P3_GROUP_99: KEEPALIVE,0
+Keepalive received from P3_GROUP_99 but no messages.
+
+Command from server P3_GROUP_99: SEND_MSG,P3_GROUP_20,P3_GROUP_99,My name is Jeff
+Message from P3_GROUP_99 sent to P3_GROUP_20: My name is Jeff
+
+Command from server P3_GROUP_30: KEEPALIVE,0
+Keepalive received from P3_GROUP_30 but no messages.
+
+Command from server P3_GROUP_699: KEEPALIVE,0
+Keepalive received from P3_GROUP_699 but no messages.
+
+Command from server P3_Group_38: KEEPALIVE,0
+Keepalive received from P3_Group_38 but no messages.
+
+Command from server P3_GROUP_69: KEEPALIVE,0
+Keepalive received from P3_GROUP_69 but no messages.
+
+Command from server NUMBER: KEEPALIVE,0
+Keepalive received from NUMBER but no messages.
+
+Command from server NUMBER: SEND_MSG,P3_GROUP_20,NUMBER,
+97a9d330e236c8d067f01da1894a5438
+Message from NUMBER sent to P3_GROUP_20: 
+97a9d330e236c8d067f01da1894a5438
+
+Command from server ORACLE: KEEPALIVE,0
+Keepalive received from ORACLE but no messages.
+
+Command from server Instr_3: KEEPALIVE,0
+Keepalive received from Instr_3 but no messages.
+^C

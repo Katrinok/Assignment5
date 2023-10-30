@@ -150,3 +150,59 @@ SENDMSG,P3_GROUP_36,We got an unknown command from you: "SEND_MSGP3_GROUP_20,P3_
 
 |30/10-15:52:27|
 Sent to server: SENDMSG,P3_GROUP_36,We got an unknown command from you: "SEND_MSGP3_GROUP_20,P3_GROUP_36,Hi tharrrrr"
+^C
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+
+|30/10-16:06:12|
+Client identifier sent to server: SECRET_KATRIN
+
+|30/10-16:06:12|
+ QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+CONNECT,130.208.243.61,4004
+
+|30/10-16:06:27|
+Sent to server: CONNECT,130.208.243.61,4004
+^C  
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+
+|30/10-16:19:41|
+Client identifier sent to server: SECRET_KATRIN
+
+|30/10-16:19:41|
+ QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+GETMSG,P3_GROUP_20      
+
+|30/10-16:22:01|
+Sent to server: GETMSG,P3_GROUP_20
+
+|30/10-16:22:01|
+ NUMBER,
+21582c6c30be1217322cdb9aebaf4a59Message from NUMBER stored for P3_GROUP_20: 
+21582c6c30be1217322cdb9aebaf4a59
+GETMSG,P3_GROUP_20
+
+|30/10-16:23:08|
+Sent to server: GETMSG,P3_GROUP_20
+
+|30/10-16:23:08|
+ P3_GROUP_12,Hiiii
+ Message from P3_GROUP_12 stored for P3_GROUP_20: Hiiii
+ 
+GETMSG,P3_GROUP_20
+
+|30/10-16:23:35|
+Sent to server: GETMSG,P3_GROUP_20
+
+|30/10-16:23:35|
+ NUMBER,
+3ca14c518d1bf901acc339e7c9cd6d7fMessage from NUMBER stored for P3_GROUP_20: 
+3ca14c518d1bf901acc339e7c9cd6d7f
+GETMSG,P3_GROUP_20
+
+|30/10-16:23:50|
+Sent to server: GETMSG,P3_GROUP_20
+
+|30/10-16:23:50|
+ NUMBER,
+37c09709af3da468f7a1bc723e943ec7Message from NUMBER stored for P3_GROUP_20: 
+37c09709af3da468f7a1bc723e943ec7
