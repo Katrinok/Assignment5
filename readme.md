@@ -43,16 +43,34 @@ The server commands are commands that the server can use to send messages to oth
     Send a STATUSRESP to the server that sent the STATUSREQ command. The STATUSRESP should contain the number of messages stored for the specified group id.
 
 6. STATUSRESP <GroupId> <NumberOfMessages>:
+    Print the status response to the terminal.
+
+7. KEEPALIVE <GroupId>: 
+    Send a KEEPALIVE to all servers in the group with the specified group id. If the group id is unknown to the server, the server will ignore the command.
+
+    if KEEPALIVE is received, respond with a FETCH_MSGS command for the groupId to receive and store the message.
 
 ## Client commands:
 
-1. CONNECT <name>: /tsampgroup12 <port> 4066
-    Registers the client with a specified name.
-2. LEAVE: 
-    Disconnects the client from the server.
-3. WHO: 
-    Asks the server to return a list of connected clients.
-4. MSG ALL <message>: 
-    Sends a message to all connected clients.
-5. MSG <client_name> <message>: 
-    Sends a message to a specific client.
+1. CONNECT <server_ip> <server_port>:
+    Connect to a server with the specified ip address and port number. 
+
+2. SENDMSG <GroupId> <Message>: 
+    Send a message to the server with the specified group id. If the group id is unknown to the server, the server will store the message
+
+3. GETMSG <GroupId>: 
+    Get all stored messages for the specified group id from the server. If the group id is unknown to the server, the server will respond with an empty message.
+
+4. SENDALL <Message>: 
+    Send a message to all servers connected to the server.
+
+5. LISTSERVERS: 
+    List all servers connected to the server.
+
+
+_Include Credit:_
+The code from the server and client is based on the code example from Jacky MNallett but modified to fit our needs. 
+
+## Authors
+Katrín Ósk Kristinsdóttir
+Sævar Örn Valsson
