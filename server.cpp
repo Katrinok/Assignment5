@@ -573,30 +573,34 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         // Find the connection object for the sender
         Connection* connection = findObject(to_group);  // Find the connection object for the sender
-
         std::cout << "Message from "<< tokens[2] << " sent to " << tokens[1] << ": " << message_contents << std::endl; //DEBUG
-
-        // If the connection is our client then send the message straight to them
-        if (to_group == server.groupID) {
-            // Add appropriate strings
-            message_contents = "Message from " + from_group + ": " + message_contents;
-            ssize_t bytes_sent = send(connection->sock, message_contents.c_str(), message_contents.length(),0);
-            if (bytes_sent == -1) {
-                if (errno == EPIPE) {
-                    std::cerr << "Detected broken pipe!" << std::endl;
-                    
-                    // If sending to client is unsuccessful
-                    storeMessage(to_group, from_group, message_contents);
-                } else {
-                    perror("send");
-                    // If sending to client is unsuccessful
-                    storeMessage(to_group, from_group, message_contents);
+        if (connection) {
+            // If the connection is our client then send the message straight to them
+            if (to_group == server.groupID) {
+                // Add appropriate strings
+                message_contents = "Message from " + from_group + ": " + message_contents;
+                ssize_t bytes_sent = send(connection->sock, message_contents.c_str(), message_contents.length(),0);
+                if (bytes_sent == -1) {
+                    if (errno == EPIPE) {
+                        std::cerr << "Detected broken pipe!" << std::endl;
+                        
+                        // If sending to client is unsuccessful
+                        storeMessage(to_group, from_group, message_contents);
+                    } else {
+                        perror("send");
+                        // If sending to client is unsuccessful
+                        storeMessage(to_group, from_group, message_contents);
+                    }
+                    closeConnection(connection->sock, openSockets, maxfds);
                 }
-                closeConnection(connection->sock, openSockets, maxfds);
+            } else {
+                // If we get a message that is not for the client then store the message
+                message_contents += "Message from " + from_group + " stored" + ": " + message_contents;
+                storeMessage(to_group, from_group, message_contents);
             }
-        }else {
-                        // If we get a message that is not meant for us, store in messageStore
-            message_contents += "Message from " + from_group + " stored" + ": " + message_contents;
+        } else {
+            // If the connection is not our client then store the message
+            message_contents += "Message from " + from_group + " stored for " + to_group + ": " + message_contents;
             storeMessage(to_group, from_group, message_contents);
         }
     } else if(tokens[0].compare("FETCH_MSGS") == 0 && (tokens.size() == 2)) { 
@@ -864,7 +868,7 @@ int main(int argc, char* argv[]) {
             }
             
             
-            std::cout << "try connecting from Queue to server" << upcomingServer.groupID << std::endl;
+            std::cout << "try connecting from Queue to server " << upcomingServer.groupID << std::endl;
             int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
             
             // Pop the server from the queue regardless of whether the connection succeeded or failed
@@ -873,7 +877,6 @@ int main(int argc, char* argv[]) {
                 createConnection(serverSocket, upcomingServer.groupID, upcomingServer.ip_address, upcomingServer.port, true);
                 FD_SET(serverSocket, &openSockets);
                 maxfds = std::max(maxfds, serverSocket);
-                std::cout << "Bý til nýtt connection " << serverSocket << "\n"<<std::endl;
             } else {
                 // If connection failed, push this server to the back of the queue
                 upcomingServer.connectionAttempts++;
