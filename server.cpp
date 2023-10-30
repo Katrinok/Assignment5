@@ -437,8 +437,9 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
 
     return formattedMessages;
 }
+
 //// Búa til fall fyrir status request
-/*std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
     std::set<std::string> uniqueGroupIDs;
     // Add the group ids uniquely
     for (const auto& pair : messageStore) {
@@ -455,12 +456,12 @@ std::vector<std::string> getMessagesForGroup(const std::string& groupID, const s
                 count++;
             }
         }
-        messagesCount += id + std::to_string(count) + ",";
+        messagesCount += "," + id + "," + std::to_string(count);
     }
 
     return messagesCount;
-}*/
-std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
+}
+/*std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& messageStore) {
     std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
     
     for (const auto& pair : messageStore) {
@@ -469,7 +470,7 @@ std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& 
         messagesCount += "," + groupID + "," + std::to_string(count);  // Using semicolon for separation for clarity
     }
     return messagesCount;
-}
+}*/
 
 /// Checks if the GroupId is not in the queue already 
 bool isGroupIdInQueue(const std::string& groupID) {
