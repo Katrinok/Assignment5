@@ -876,7 +876,7 @@ int main(int argc, char* argv[]) {
             // Error check if the format of the server is incorrect
             // Check if the port is -1 or no IP address is provided
             if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
-                std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
+                std::cout << "Invalid data for server " << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
                 continue;
             }
