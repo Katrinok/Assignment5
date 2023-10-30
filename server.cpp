@@ -1,9 +1,10 @@
 //
-// Simple chat server for TSAM-409
+// Simple chat server for botnet TSAM-409
 //
-// Command line: ./chat_server 4000 
+// Command line: ./tsampgroup20 4000 
 //
 // Author: Jacky Mallett (jacky@ru.is)
+// Modified by: Katrín Ósk Kristinsdóttir and Sævar Örn Valsson
 //
 #include <stdio.h>
 #include <errno.h>

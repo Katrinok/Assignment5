@@ -11,7 +11,7 @@ _Included files in the project:_
 - Assignment 5.pdf
 
 
-_Project members:_
+_Project Overview:_
 In this project we create a server on skel and try to connect to all servers in the network createing a network of connected servers. We also create a client that can connects to the server we created  and send messages to other clients connected to the server.
 
 _Pre-requisites:_
@@ -77,12 +77,9 @@ The server commands are commands that the server can use to send messages to oth
     List all servers connected to the server.
 
 
-Connected Log Messeges:
-38, 99, 69, 17, 22, 100, Number, 15, 44, Oracle, 68, 150, 88, 39, 61, 16   
-
 
 _Include Credit:_
-The code from the server and client is based on the code example from Jacky MNallett but modified to fit our needs. 
+The code from the server and client is based on the code example from Jacky Mallett but modified to fit our needs. 
 
 ## Authors
 Katrín Ósk Kristinsdóttir
