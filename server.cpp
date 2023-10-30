@@ -570,8 +570,8 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
-        // Check if the first server input is valid
-        if (first_server[0] != "" && first_server[1] != "" && first_server[2] != "") {
+        // Check if the first server input is valid and if the id is already in the connectionsList
+        if (first_server[0] != "" && first_server[1] != "" && first_server[2] != "" && !isConnected(first_server[0])) { 
             createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
             addToQueue(servers_tokens, server); // Add the servers to the queue
         }
@@ -1020,7 +1020,7 @@ int main(int argc, char* argv[]) {
                                 }
                                 leftoverBuffer.erase(0, start_pos);
                             } catch (const std::length_error &le) {  // Catching string error that makes the server cras
-                                std::cerr << "Length error: " << le.what() << std::endl;
+                                std::cerr << "Command over 5000 characters: " << le.what() << std::endl;
                             }
                         
                         }
