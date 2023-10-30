@@ -179,7 +179,6 @@ void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
      // If this client's socket is maxfds then the next lowest
      // one has to be determined. Socket fd's can be reused by the Kernel,
      // so there aren't any nice ways to do this.
-    
     close(clientSocket);
     if(*maxfds == clientSocket) {
         for(auto const& p : connectionsList) {
@@ -245,16 +244,19 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
                 
                 // Construct the keepalive message
                 std::string keepaliveMessage = "KEEPALIVE," + std::to_string(messageCount); // RÉTT FORMAT
-                std::cout << "Sending keepalive to " << connection->groupID << " with " << messageCount << " messages." << std::endl;
+                
                 keepaliveMessage = wrapWithSTXETX(keepaliveMessage);
                 ssize_t bytes_sent = send(connection->sock, keepaliveMessage.c_str(), keepaliveMessage.size(), 0);
-                if (bytes_sent == -1) {
+                
+                if (bytes_sent < 0) {
                     if (errno == EPIPE) {
                         std::cerr << "Detected broken pipe!" << std::endl;
                     } else {
                         perror("send");
                     }
                     closeConnection(connection->sock, openSockets, maxfds);
+                } else {
+                    std::cout << "Sending keepalive to " << connection->groupID << " with " << messageCount << " messages." << std::endl;
                 }
             } 
         }
@@ -300,7 +302,6 @@ void createConnection(int serverSock, std::string receivedGroupID, std::string i
     if (connectionsList.find(serverSock) != connectionsList.end()) {
         // Close the existing connection and free memory (if needed).
         delete connectionsList[serverSock];  // free memory
-        std::cout << "Updateing existing information" << std::endl;
     }
     // Create a new Connection instance and add it to the connectionsList
     Connection* newConnection = new Connection(serverSock);
@@ -395,8 +396,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
     Message newMessage(toGroupID, fromGroupID, msg);
     messageStore[toGroupID].push_back(newMessage);
-    std::cout << "Message stored in messageStore" << std::endl;
-    std::cout << "Message stored was: " << toGroupID << "," << fromGroupID << "," << msg << std::endl;
+    std::cout << "Message stored was: " << toGroupID << ", " << fromGroupID << ", " << msg << std::endl;
 }
 
 // Function that gets the next message for a group if there is any
@@ -445,7 +445,6 @@ std::string getMessagesCount(const std::map<std::string, std::vector<Message>>& 
     for (const auto& pair : messageStore) {
         uniqueGroupIDs.insert(pair.first);  // Set will ensure only unique values are stored
     }
-
     std::vector<std::string>(uniqueGroupIDs.begin(), uniqueGroupIDs.end()); // Convert to a vector
     std::string messagesCount; // Initialize a string on the format to_groupID,<msgs count> for all groupids
     
@@ -488,28 +487,30 @@ bool isGroupIdInQueue(const std::string& groupID) {
 void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in a vector of servers with comma seperated tokens, group_id,
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
-        if (connection_tokens[0] != server.groupID && connection_tokens[0] != "P3_Group_38")  {
+        if (connection_tokens[0] != server.groupID && connection_tokens[0] != "")  {
              if(!isConnected(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
                 serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
                 std::cout << "Added to queue: " << connection_tokens[0] << std::endl;
-            } else {
-                std::cout << "Already connected to or already in queue: " << connection_tokens[0] << std::endl;
+            } else if (isConnected(connection_tokens[0])) {
+                std::cout << "Already connected to: " << connection_tokens[0] << std::endl;
+            } else if (isGroupIdInQueue(connection_tokens[0])) {
+                std::cout << "Already in queue: " << connection_tokens[0] << std::endl;
             }
         }
     }
 }
-// Handle if we get -1 just a test
-int handleRecv(int sock, char* buffer, int bufsize, std::string& lastMessage) {
+// Function that handles -1 and tries to retransmit the message if it fails closes the connection
+int handleRecv(int sock, char* buffer, int bufsize, std::string& lastMessage, fd_set *openSockets, int *maxfds) {
     int commandBytes = recv(sock, buffer, bufsize, MSG_DONTWAIT);
-
     if (commandBytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK) && !lastMessage.empty()) {
         // Socket would block, try retransmission
         send(sock, lastMessage.c_str(), lastMessage.size(), 0);
         commandBytes = recv(sock, buffer, bufsize, MSG_DONTWAIT);  // Try recv() again
         if (commandBytes == -1) {
             // Retransmission also failed, close connection
-            close(sock);
             std::cout << "Connection closed after failed retransmission: " << sock << std::endl;
+            closeConnection(sock, openSockets, maxfds); // Close the connection if the retransmission fails
+            connectionsList.erase(sock); // Erase the connection from the connectionsList
             return -1;
         }
     }
@@ -558,11 +559,13 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         while(std::getline(servers_stream, servers_token, ';')) {
             servers_tokens.push_back(servers_token); //Then push rest into the stream
         }
-
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
-        createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
-        addToQueue(servers_tokens, server); // Add the servers to the queue
+        // Check if the first server input is valid
+        if (first_server[0] != "" && first_server[1] != "" && first_server[2] != "") {
+            createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
+            addToQueue(servers_tokens, server); // Add the servers to the queue
+        }
 
     } else if(tokens[0].compare("SEND_MSG") == 0 && (tokens.size() > 3)) {
         std::string to_group = tokens[1]; // Id on those the messages are to
@@ -649,13 +652,6 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
     } else if(tokens[0].compare("STATUSRESP") == 0) { 
         // Just print out the status response in the server
         std::cout << "STATUSRESP from" << token[1] << ": " << buffer << "\n" << std::endl;
-        
-        //DEBUG
-        std::string messageCount = "STATUSRESP," + server.groupID + "," + connectionsList[server_socket]->groupID + getMessagesCount(messageStore);
-        
-        std::cout << "--------> OUR STATUSRESP message sent was: " << messageCount << std::endl;
-
-
 
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         if(tokens[1] != "0") {
@@ -666,7 +662,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
             fetch_msg = wrapWithSTXETX(fetch_msg); // Wrap the message with STX and ETX
             send(server_socket, fetch_msg.c_str(), fetch_msg.length(), 0); // Send the message to the server
         } else {
-            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " but no messages"<<std::endl;
+            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " but no messages."<<std::endl;
         }
     } else {
         // prints out the unknown command from the server 
@@ -691,7 +687,6 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
     }
     // If we get CONNECT, connect to the server and send QUERYSERVERS
     if((tokens[0].compare("CONNECT") == 0) && (tokens.size() == 3)) { // example  connect 130.208.243.61 4000 
-        std::cout << "Client command: " << tokens[0] << " " << tokens[1] << " " << tokens[2] << " " << std::endl; // DEBUG
         // If the maximum servers is not reached connect to the server
         if (connectionsList.size() < MAX_SERVER_CONNECTIONS) {
             std::string ip_address = tokens[1];
@@ -714,7 +709,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
             if(connection->isServer) { // Make sure to check if the connection is a server
-                msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + ";";
+                msg += connection->groupID + "," + connection->ip_address + "," + std::to_string(connection->port) + "\n";
             }
         }
         if(msg.empty()) { // checks if the msg is empty to print out no servers connected
@@ -732,7 +727,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 perror("send");
             }
         }
-        std::cout << "Message sent was: " << msg << std::endl;
+        std::cout << "Listing servers: " << msg << std::endl;
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() > 2)) { // Sends message to a server if it connected or stores it
         // If we were to send message to a server that is is the process of sending
@@ -876,7 +871,7 @@ int main(int argc, char* argv[]) {
             }
             
             
-            std::cout << "try connecting from Queue to server " << upcomingServer.groupID << std::endl;
+            std::cout << "Try connecting to server " << upcomingServer.groupID << " from queue." << std::endl;
             int serverSocket = connectToServer(upcomingServer.ip_address, upcomingServer.port, upcomingServer.groupID, myServer);
             
             // Pop the server from the queue regardless of whether the connection succeeded or failed
@@ -890,9 +885,9 @@ int main(int argc, char* argv[]) {
                 upcomingServer.connectionAttempts++;
                 if (upcomingServer.connectionAttempts < 2) {
                     serverQueue.push(upcomingServer);
-                    std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Pushing it to the back of the queue." << std::endl;
+                    std::cout << "Failed to connect to server " << upcomingServer.groupID << ". Pushing it to the back of the queue." << std::endl;
                 } else {
-                    std::cout << "Failed to connect to server" << upcomingServer.groupID << ". Not pushing it to the back of the queue." << std::endl;
+                    std::cout << "Failed to connect to server " << upcomingServer.groupID << " the second time. Not pushing it to the back of the queue." << std::endl;
                 }
             }
     }
@@ -929,7 +924,8 @@ int main(int argc, char* argv[]) {
                 char handshakeBuffer[1025];
                 memset(handshakeBuffer, 0, sizeof(handshakeBuffer));
                 int handshakeBytes = recv(clientSock, handshakeBuffer, sizeof(handshakeBuffer) - 1, 0);  // This time, we block until we get a response
-                std::cout << "Print HandshakeBuffer: " << handshakeBuffer << std::endl; //DEBUG
+
+                // If the client has the secret string
                 if(handshakeBytes > 0 && strcmp(handshakeBuffer, "SECRET_KATRIN") == 0) {
                     std::cout << "Secret client Handshake Received" << std::endl; //DEBUG
                     createConnection(clientSock, ourGroupID, myServer.ip_address, myServer.port, false); // Create a connection from the socket
@@ -946,15 +942,15 @@ int main(int argc, char* argv[]) {
                             }
                         if (tokens[1] != "P3_Group_38") {
                             if (!isConnected(tokens[1])) {
-                                std::cout << "Server tries to connect with Queryservers" << std::endl; //DEBUG
+                                // If the server is not in the conenction list
                                 createConnection(clientSock, tokens[1], clientIp, clientPort, true); // Create a connection from the socket
                                 serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);
                             } else {
-                                std::cout << "Server is already connected" << std::endl; //DEBUG
+                                std::cout << "Server is already connected." << std::endl; //DEBUG
                             }
                         } else {
                             closeConnection(clientSock, &openSockets, &maxfds);
-                            std::cout << "Refused connection with " << tokens[1] << "." << std::endl; // Banning group 38 because they are stealing messages!!
+                            std::cout << "Refused connection with " << tokens[1] << "." << std::endl; // Banning group 38 because they are stealing too many messages!!
                         }
                     }
                 }
@@ -971,7 +967,7 @@ int main(int argc, char* argv[]) {
                     //std::cout << "Misstum af seinni pakkanum" << std::endl;
                     if(FD_ISSET(connection->sock, &readSockets)) {
                         //int commandBytes = recv(connection->sock, buffer, sizeof(buffer), MSG_DONTWAIT); // this is the command bytes from client
-                        int commandBytes = handleRecv(connection->sock, buffer, sizeof(buffer), lastMessage);
+                        int commandBytes = handleRecv(connection->sock, buffer, sizeof(buffer), lastMessage, &openSockets, &maxfds);
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
@@ -980,7 +976,7 @@ int main(int argc, char* argv[]) {
                             lastMessage.assign(buffer, commandBytes);
                             try{
                                 // We have received commandBytes of data, but it can be many commands
-                                std::cout << "Appending " << commandBytes << " bytes to leftoverBuffer (current size: " << leftoverBuffer.size() << " bytes)" << std::endl;
+
                                 leftoverBuffer.append(buffer, commandBytes); // Það kemur length error hérna líklega vegna þess að það er ekki nóg pláss í buffer
                                 size_t start_pos = 0;
                                 // While we have something in the buffer
