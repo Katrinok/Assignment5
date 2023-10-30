@@ -1,0 +1,152 @@
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+
+|30/10-15:30:13|
+Client identifier sent to server: SECRET_KATRIN
+
+|30/10-15:30:13|
+ QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+CONNECT,130.208.243.61,4003
+
+|30/10-15:30:33|
+Sent to server: CONNECT,130.208.243.61,4003
+
+|30/10-15:31:23|
+ Message from P3_Group_38: Best thing about hosting a server on a virtual machine is when you check on it the next day to see if it's still online only to find out that windows decided to update itself...
+--This is an automessage from P3_Group_38 just to share the deterioration of my sanity.
+
+|30/10-15:31:27|
+ Message from P3_GROUP_99: My name is Jeff
+
+|30/10-15:31:29|
+ Message from P3_GROUP_150: You've reached GROUP 150! This is an automated message sent once to confirm your connection you won't receive it again unless we had to restart. Please check your SERVERS reply as we've been getting some entries wrong from some groups
+
+|30/10-15:31:33|
+ Message from P3_GROUP_99: My name is Jeff
+
+|30/10-15:31:42|
+ Message from P3_GROUP_99: My name is Jeff
+
+|30/10-15:31:56|
+ Message from P3_GROUP_99: My name is Jeff
+SENDALL,HELLO<3
+
+|30/10-15:32:21|
+Sent to server: SENDALL,HELLO<3
+
+|30/10-15:33:05|
+ Message from P3_GROUP_88: Hello there I'm the new and improved P3_GROUP_88 bot! If you are a group from Akureyri please let us know. It's so great to see you. I wanted to write you a short message but I never get anything done quickly and have now way of going halfway here. Anyway. Let me be brief. HI!
+
+
+|30/10-15:33:05|
+ Message from P3_GROUP_88: Hello there I'm the new and improved P3_GROUP_88 bot! If you are a group from Akureyri please let us know. It's so great to see you. I wanted to write you a short message but I never get anything done quickly and have now way of going halfway here. Anyway. Let me be brief. HI!
+
+SENDMSG,P3_GROUP_38,Saeliir
+
+|30/10-15:33:42|
+Sent to server: SENDMSG,P3_GROUP_38,Saeliir
+LISTSERVERS
+
+|30/10-15:34:33|
+Sent to server: LISTSERVERS
+
+|30/10-15:34:33|
+ Instr_3,130.208.243.61,4003
+ORACLE,130.208.243.61,4004
+P3_GROUP_88,130.208.243.61,54178
+P3_GROUP_12,130.208.243.61,4068
+Instr_2,130.208.243.61,4002
+P3_GROUP_69,130.208.243.61,40928
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_150,130.208.243.61,4073
+
+SENDMSG,P3_GROUP_88,How are you?
+
+|30/10-15:35:36|
+Sent to server: SENDMSG,P3_GROUP_88,How are you?
+
+|30/10-15:36:42|
+ Message from P3_GROUP_99: My name is Jeff
+SENDMSG,P3_G
+|30/10-15:40:58|
+ Message from ORACLE: 
+
+“The greatest enemy of knowledge is not ignorance it is the illusion of knowledge.”
+— Stephen Hawking 
+ROUP_39,Hopur 69 setti post a piazza ef thid viljid koma skilabodum aleidis
+
+|30/10-15:41:24|
+Sent to server: SENDMSG,P3_GROUP_39,Hopur 69 setti post a piazza ef thid viljid koma skilabodum aleidis
+SENDMSG,P3_GROUP_69,How you doin
+
+|30/10-15:43:10|
+Sent to server: SENDMSG,P3_GROUP_69,How you doin
+
+|30/10-15:43:10|
+ Message from P3_GROUP_69: Thank you for reaching out to us. Your message has been received by GROUP_69. We will review it and get back to you as soon as possible. We appreciate your patience.
+
+Warm regards
+GROUP_69
+GETMSG,P3_GROUP_20
+
+|30/10-15:47:07|
+Sent to server: GETMSG,P3_GROUP_20
+
+|30/10-15:47:07|
+ No messages for group: P3_GROUP_20
+SENDALL,HELLO! Group 20 would love to get a message from you.
+
+|30/10-15:48:10|
+Sent to server: SENDALL,HELLO! Group 20 would love to get a message from you.
+
+|30/10-15:48:10|
+ Message from P3_GROUP_69: Thank you for reaching out to us. Your message has been received by GROUP_69. We will review it and get back to you as soon as possible. We appreciate your patience.
+
+Warm regards
+GROUP_69
+SENDALL,Hello! Please send group 20 a message<3
+
+|30/10-15:48:51|
+Sent to server: SENDALL,Hello! Please send group 20 a message<3
+
+|30/10-15:48:51|
+ Message from P3_GROUP_69: Thank you for reaching out to us. Your message has been received by GROUP_69. We will review it and get back to you as soon as possible. We appreciate your patience.
+
+Warm regards
+GROUP_69
+
+|30/10-15:49:09|
+ Message from P3_GROUP_12: <3
+ 
+LISTSERVERS
+
+|30/10-15:49:44|
+Sent to server: LISTSERVERS
+
+|30/10-15:49:44|
+ P3_GROUP_8,130.208.243.61,47764
+P3_GROUP_12,130.208.243.61,4068
+P3_GROUP_69,130.208.243.61,40928
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_73,130.208.243.61,60366
+
+CONNECT,
+|30/10-15:50:03|
+ Message from P3_GROUP_8: Hello from group 8
+
+|30/10-15:50:03|
+ Message from P3_GROUP_8: Hello from group 8
+^R
+SENDALL,<3
+
+|30/10-15:50:12|
+Sent to server: SENDALL,<3
+
+|30/10-15:50:12|
+ Message from P3_GROUP_69: Thank you for reaching out to us. Your message has been received by GROUP_69. We will review it and get back to you as soon as possible. We appreciate your patience.
+
+Warm regards
+GROUP_69
+SENDMSG,P3_GROUP_36,We got an unknown command from you: "SEND_MSGP3_GROUP_20,P3_GROUP_36,Hi tharrrrr"
+
+|30/10-15:52:27|
+Sent to server: SENDMSG,P3_GROUP_36,We got an unknown command from you: "SEND_MSGP3_GROUP_20,P3_GROUP_36,Hi tharrrrr"
