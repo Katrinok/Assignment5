@@ -32,7 +32,7 @@ std::string getTimestamp() {
     char buffer[80];
     time_t now = time(0);
     struct tm tstruct = *localtime(&now);
-    strftime(buffer, sizeof(buffer), "|%d/%m-%H:%M:%S|", &tstruct);
+    strftime(buffer, sizeof(buffer), "\n|%d/%m-%H:%M:%S|", &tstruct);
     return std::string(buffer);
 }
 
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
         // Send identifier to server immediately after connecting
     std::string clientIdentifier = "SECRET_KATRIN"; // sent a secret token to know who is who
     send(serverSocket, clientIdentifier.c_str(), clientIdentifier.length(), 0);
-    std::cout << getTimestamp() <<"Client identifier sent to server: " << clientIdentifier << std::endl;
+    std::cout << getTimestamp() <<"\nClient identifier sent to server: " << clientIdentifier << std::endl;
 
     // Listen and print replies from server
     std::thread serverThread(listenServer, serverSocket);
@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
         nwrite = send(serverSocket, buffer, strlen(buffer),0);
         std::string timestamp = getTimestamp();
         std::string message = buffer;
-        message = timestamp + " Sent to server: \n" + message;
+        message = timestamp + "\nSent to server: " + message;
         strcpy(buffer, message.c_str());
         std::cout << message << std::endl; //ÞARF AÐ PRENTA AFTUR???
         if(nwrite  == -1)
