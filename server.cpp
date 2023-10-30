@@ -398,7 +398,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
 void storeMessage(const std::string& toGroupID, const std::string& fromGroupID, const std::string& msg) {
     Message newMessage(toGroupID, fromGroupID, msg);
     messageStore[toGroupID].push_back(newMessage);
-    std::cout << "Message stored was: " << toGroupID << ", " << fromGroupID << ", " << msg << std::endl;
+    std::cout << "Message stored was: " << toGroupID << "," << fromGroupID << "," << msg << std::endl;
 }
 
 // Function that gets the next message for a group if there is any
@@ -550,7 +550,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         std::string servers_response = queryserversResponse(server.groupID, server);
         // Wrap it in STX and ETX
         servers_response = wrapWithSTXETX(servers_response);
-        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) < 0) {
+        if(send(server_socket, servers_response.c_str(), servers_response.length(), 0) <= 0) {
             perror("Error sending SERVERS message");
             // Delete this connection, because we could not send SERVERS
             closeConnection(server_socket, openSockets, maxfds);
@@ -608,7 +608,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
                 }
             } else {
                 // If we get a message that is not for the client then store the message
-                message_contents += "Message from " + from_group + " stored" + ": " + message_contents;
+                std::cout << "Message from " << from_group << " stored: " << message_contents << std::endl;
                 storeMessage(to_group, from_group, message_contents);
             }
         } else {
@@ -664,7 +664,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("KEEPALIVE") == 0 && (tokens.size() == 2)){
         if(tokens[1] != "0") {
-            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << "with "<< token[1]<< " messages"<<std::endl;
+            std::cout << "Keepalive received from " << connectionsList[server_socket]->groupID << " with "<< tokens[1] << " messages."<<std::endl;
             std::cout << "Number of messages from group: "<< connectionsList[server_socket]->groupID << " is: " << tokens[1] << std::endl;
             std::string fetch_msg = "FETCH_MSGS," + server.groupID; // Create the message to send
             std::cout << "Message sent was: " << fetch_msg << std::endl;
@@ -795,8 +795,10 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         }
     } else if(tokens[0].compare("SENDALL") == 0 && (tokens.size() >= 2)) {
     // The command might look like: SENDALL,message_content
-    std::string message_contents; // Message contents
-    message_contents = tokens[1]; // Get the message contents
+    std::string message_contents; // Messge contents
+    for(std::vector<std::string>::size_type i = 1; i < tokens.size(); i++) {
+        message_contents += tokens[i];
+    } 
     // Iterate through the connectionsList and send a message to every server
     for(auto const& pair : connectionsList) {
         Connection* connection = pair.second;

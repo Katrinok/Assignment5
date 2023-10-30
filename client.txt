@@ -1,0 +1,17 @@
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+Client identifier sent to server: SECRET_KATRIN
+29/10-17:25:03 QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+CONNECT,130.208.243.61,4019
+Messege sent to the server:29/10-17:25:14 CONNECT,130.208.243.61,4019
+SENDMSG,P3_Group_19,Hello! I'm in Reykjavík, are you in Akureyri?
+Messege sent to the server:29/10-17:27:07 SENDMSG,P3_Group_19,Hello! I'm in Reykjavík, are you in Akureyri?
+29/10-17:28:14 Greetings from Akureyri group 20.
+LISTSERVERS
+Messege sent to the server:29/10-17:32:48 LISTSERVERS
+29/10-17:32:48 P3_GROUP_1,,-1;P3_Group_19,,-1;Instr_3,130.208.243.61,4003;ORACLE,130.208.243.61,4004;P3_GROUP_1,,-1;P3_GROUP_1,,-1;
+29/10-17:35:14 Greetings from Akureyri.
+SENDMSG,29/10-17:36:46 Welcome to the net
+SENDMSG,P3_Group_19,Thank you for your message!
+Messege sent to the server:29/10-17:38:02 SENDMSG,SENDMSG,P3_Group_19,Thank you for your message!
+SENDMSG,P3_Group_129/10-17:38:35 Hello there I'm the new and improved P3_GROUP_88 bot! If you are a group from Akureyri please let us know. It's so great to see you. I wanted to write you a short message but I never get anything done quickly and have now way of going halfway here. Anyway. Let me be brief. HI!
+
