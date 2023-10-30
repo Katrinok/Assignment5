@@ -78,7 +78,7 @@ The server commands are commands that the server can use to send messages to oth
 
 
 Connected Log Messeges:
-38, 99, 69, 17, 22, 100, Number, 15 
+38, 99, 69, 17, 22, 100, Number, 15, 44, Oracle, 68, 150, 88, 39, 61, 16   
 
 
 _Include Credit:_

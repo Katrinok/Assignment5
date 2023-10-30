@@ -273,8 +273,8 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
         mtx.unlock();
     }
 }
-
-Connection* isConnected(const std::string& groupId) {
+// Returns the connection instance if it is a server
+Connection* isConnectedAsServer(const std::string& groupId) {
     for (const auto& pair : connectionsList) {
         Connection* connection = pair.second;
         if ((connection->groupID == groupId) && (connection->isServer) && (connection->port != -1)) { // Bætti við til að flagga ef við höfum ekki port numer
@@ -500,10 +500,10 @@ void addToQueue(std::vector<std::string> servers, myServer server) { //Takes in 
     for(std::vector<std::string>::size_type i = 1; i < servers.size(); i++) {
         std::vector<std::string> connection_tokens = splitTokens(servers[i]);
         if (connection_tokens[0] != server.groupID && connection_tokens[0] != "")  {
-             if(!isConnected(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
+             if(!isConnectedAsServer(connection_tokens[0]) && !isGroupIdInQueue(connection_tokens[0])) {
                 serverQueue.push(QueueServer(connection_tokens[0], connection_tokens[1], std::stoi(connection_tokens[2])));
                 std::cout << "Added to queue: " << connection_tokens[0] << std::endl;
-            } else if (isConnected(connection_tokens[0])) {
+            } else if (isConnectedAsServer(connection_tokens[0])) {
                 std::cout << "Already connected to: " << connection_tokens[0] << std::endl;
             } else if (isGroupIdInQueue(connection_tokens[0])) {
                 std::cout << "Already in queue: " << connection_tokens[0] << std::endl;
@@ -581,7 +581,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Now we need to update the information for the server that sends us SERVERS, he is token[0]
         std::vector<std::string> first_server = splitTokens(servers_tokens[0]);
         // Check if the first server input is valid and if the id is already in the connectionsList
-        if (first_server[0] != "" && first_server[1] != "" && first_server[2] != "" && !isConnected(first_server[0])) { 
+        if (first_server[0] != "" && first_server[1] != "" && first_server[2] != "" && !isConnectedAsServer(first_server[0])) { 
             createConnection(server_socket,first_server[0],first_server[1], std::stoi(first_server[2]), true); // bætti þessu við sjáu,m hvort non breytist
             addToQueue(servers_tokens, server); // Add the servers to the queue
         }
@@ -750,7 +750,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
 
     } else if(tokens[0].compare("SENDMSG") == 0 && (tokens.size() > 2)) { // Sends message to a server if it connected or stores it
         // If we were to send message to a server that is is the process of sending
-        Connection* connection = isConnected(tokens[1]); // check if connected
+        Connection* connection = isConnectedAsServer(tokens[1]); // check if connected
         std::cout << "Send message to: "<< tokens[1] << std::endl; // bREYTA prentinu
         // Take the rest of the tokens in one string as the message
         std::string message_contents; // Messge contents
@@ -760,7 +760,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         if(connection) { //if connected or in connectionlist
             
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + message_contents; // Create the message to send
-            std::cout << "Message sent was: " << msg << std::endl;
+            std::cout << "Message sent was: " << message_contents << std::endl;
             msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
             ssize_t bytes_sent = send(connection->sock, msg.c_str(), msg.length(),0); // Send the message to the server
             // Check if the server has closed connection nad detect broken pipe
@@ -787,7 +787,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         
     } else if(tokens[0].compare("STATUSREQ") == 0 && (tokens.size() == 2)) { // client can send STATUSREQ,TO_GROUP and the server gets STATUSRESP for testing
         std::string msg;
-        Connection* connection = isConnected(tokens[1]); // check if connected
+        Connection* connection = isConnectedAsServer(tokens[1]); // check if connected
         if(connection) { //if connected or in connectionlist
             msg = "STATUSREQ," + server.groupID;
             msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
@@ -976,7 +976,7 @@ int main(int argc, char* argv[]) {
                                 tokens.push_back(token);
                             }
 
-                        if (!isConnected(tokens[1])) {
+                        if (!isConnectedAsServer(tokens[1])) {
                             // If the server is not in the conenction list
                             createConnection(clientSock, tokens[1], clientIp, -1, true); // Create a connection from the socket
                             serverCommand(clientSock, &openSockets, &maxfds, extracted, myServer);

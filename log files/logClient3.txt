@@ -1,0 +1,339 @@
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+
+|30/10-18:07:54|
+Client identifier sent to server: SECRET_KATRIN
+
+|30/10-18:07:54|
+ QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+CONNECT,130.208.243.61,4001 
+
+|30/10-18:08:14|
+Sent to server: CONNECT,130.208.243.61,4001
+
+|30/10-18:08:15|
+ Message from P3_Group_38: Best thing about hosting a server on a virtual machine is when you check on it the next day to see if it's still online only to find out that windows decided to update itself...
+--This is an automessage from P3_Group_38 just to share the deterioration of my sanity.
+LISTSERVERS
+
+|30/10-18:08:52|
+Sent to server: LISTSERVERS
+
+|30/10-18:08:52|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+P3_GROUP_30,130.208.243.61,4021
+P3_GROUP_69,130.208.243.61,4080
+Instr_2,130.208.243.61,4002
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_17,130.208.243.61,4066
+P3_Group_43,130.208.243.61,4043
+P3_GROUP_18,130.208.243.61,4064
+
+LISTSERVERS
+
+|30/10-18:10:21|
+Sent to server: LISTSERVERS
+
+|30/10-18:10:21|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+P3_GROUP_30,130.208.243.61,44910
+P3_GROUP_69,130.208.243.61,4080
+Instr_2,130.208.243.61,4002
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_17,130.208.243.61,4066
+P3_GROUP_18,130.208.243.61,4064
+P3_GROUP_20,130.208.243.61,4077
+P3_GROUP_29,130.208.244.96,58305
+
+
+|30/10-18:10:56|
+ Message from NUMBER: 
+d529e941509eb9e9b9cfaeae1fe7ca23
+SENDALL,Do you have any pets?
+
+|30/10-18:11:37|
+Sent to server: SENDALL,Do you have any pets?
+LISTSERVERS
+
+|30/10-18:11:48|
+Sent to server: LISTSERVERS
+
+|30/10-18:11:49|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_3,130.208.243.61,4003
+Instr_2,130.208.243.61,4002
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_17,130.208.243.61,4066
+P3_GROUP_18,130.208.243.61,4064
+P3_GROUP_20,130.208.243.61,4077
+P3_GROUP_29,130.208.244.96,58305
+
+
+|30/10-18:12:27|
+ Message from P3_GROUP_17:  yes I have a dog. Do you have any pets?
+
+SENDMSG,P3_GROUP_17,Yes, I have a mini schnauzer       
+
+|30/10-18:13:06|
+Sent to server: SENDMSG,P3_GROUP_17,Yes, I have a mini schnauzer
+
+|30/10-18:13:07|
+ Message from NUMBER: 
+3ca14c518d1bf901acc339e7c9cd6d7f
+LISTSERVERS
+
+|30/10-18:13:30|
+Sent to server: LISTSERVERS
+
+|30/10-18:13:31|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_3,130.208.243.61,4003
+P3_GROUP_4,130.208.243.61,52226
+Instr_2,130.208.243.61,4002
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_18,130.208.243.61,4064
+P3_GROUP_39,130.208.243.61,47546
+P3_GROUP_36,127.0.0.1,56922
+
+Over and Out
+katrinosk@Katrins-Air Assignment5 % clear
+
+katrinosk@Katrins-Air Assignment5 % ./chat_client 130.208.243.61 4077
+
+|30/10-18:20:49|
+Client identifier sent to server: SECRET_KATRIN
+
+|30/10-18:20:49|
+ QUERYSERVERS,P3_GROUP_20,130.208.243.61,4077
+CONNECT,130.208.243.61,4001
+
+|30/10-18:21:18|
+Sent to server: CONNECT,130.208.243.61,4001
+LISTSERVERS
+
+|30/10-18:21:52|
+Sent to server: LISTSERVERS
+
+|30/10-18:21:53|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+
+
+|30/10-18:22:22|
+ Message from P3_Group_38: Best thing about hosting a server on a virtual machine is when you check on it the next day to see if it's still online only to find out that windows decided to update itself...
+--This is an automessage from P3_Group_38 just to share the deterioration of my sanity.
+LISTSERVERS
+
+|30/10-18:22:47|
+Sent to server: LISTSERVERS
+
+|30/10-18:22:48|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_2,130.208.243.61,4002
+P3_GROUP_39,130.208.243.61,4039
+P3_GROUP_69,130.208.243.61,60522
+P3_Group_22,130.208.243.61,4070
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_17,130.208.243.61,4066
+P3_GROUP_18,130.208.243.61,4064
+
+
+|30/10-18:23:13|
+ Message from P3_GROUP_99: My name is Jeff
+SENDALL,Hi Jeff
+
+|30/10-18:23:33|
+Sent to server: SENDALL,Hi Jeff
+
+|30/10-18:23:33|
+ Message from P3_GROUP_69: Thank you for reaching out to us. Your message has been received by GROUP_69. We will review it and get back to you as soon as possible. We appreciate your patience.
+
+Warm regards
+GROUP_69
+SENDALL,Are you alive?
+
+|30/10-18:25:04|
+Sent to server: SENDALL,Are you alive?
+
+|30/10-18:25:21|
+ Message from P3_GROUP_17: WaSENDMSG
+
+|30/10-18:25:37|
+ Message from P3_Group_22: Hello group 20 please reply
+
+
+|30/10-18:25:37|
+ Message from P3_GROUP_17: I'm alive thanks
+
+SENDMSG,P3_GROUP_17,Nice
+
+|30/10-18:25:58|
+Sent to server: SENDMSG,P3_GROUP_17,Nice
+
+|30/10-18:26:12|
+ Message from P3_GROUP_17: thanks for checking
+
+LISTSERVERS
+
+|30/10-18:27:06|
+Sent to server: LISTSERVERS
+
+|30/10-18:27:06|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_2,130.208.243.61,4002
+P3_GROUP_100,130.208.243.61,42186
+P3_GROUP_69,130.208.243.61,60522
+P3_Group_22,130.208.243.61,4070
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_17,130.208.243.61,4066
+P3_GROUP_6,130.208.243.61,4006
+
+
+|30/10-18:27:15|
+ Message from P3_GROUP_100: Hey want to exxchnage messages for bonnus points?
+
+|30/10-18:27:19|
+ Message from NUMBER: 
+37c09709af3da468f7a1bc723e943ec7
+SENDMSG,P3_GROUP_100,BONUSPOIIIIINTSSSS
+
+|30/10-18:27:46|
+Sent to server: SENDMSG,P3_GROUP_100,BONUSPOIIIIINTSSSS
+
+|30/10-18:28:12|
+ Message from P3_GROUP_100: LETSGOOO
+
+|30/10-18:29:41|
+ Message from P3_GROUP_99: My name is Jeff
+
+|30/10-18:29:53|
+ Message from P3_GROUP_99: My name is Jeff
+SENDALL,<3
+|30/10-18:29:57|
+ Message from P3_GROUP_99: My name is Jeff
+^R
+LISTSERVERS
+
+|30/10-18:30:02|
+Sent to server: LISTSERVERS
+
+|30/10-18:30:02|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_2,130.208.243.61,4002
+P3_GROUP_100,130.208.243.61,42186
+P3_GROUP_69,130.208.243.61,60522
+P3_GROUP_99,89.160.199.163,22453
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_6,130.208.243.61,4006
+P3_GROUP_39,130.208.243.61,44242
+
+SENDALL,<3
+
+|30/10-18:30:14|
+Sent to server: SENDALL,<3
+SENDALL,<3
+
+|30/10-18:31:46|
+Sent to server: SENDALL,<3
+SENDALL,<3
+
+|30/10-18:31:50|
+Sent to server: SENDALL,<3
+SENDALL,<3
+
+|30/10-18:31:54|
+Sent to server: SENDALL,<3
+SENDALL,<3
+
+|30/10-18:31:58|
+Sent to server: SENDALL,<3
+LISTSERVERS
+
+|30/10-18:32:26|
+Sent to server: LISTSERVERS
+
+|30/10-18:32:26|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_2,130.208.243.61,4002
+P3_GROUP_100,130.208.243.61,42186
+P3_GROUP_69,130.208.243.61,60522
+P3_GROUP_30,130.208.243.61,39546
+P3_Group_38,194.144.191.50,8120
+P3_GROUP_6,130.208.243.61,4006
+P3_GROUP_39,130.208.243.61,44242
+
+
+|30/10-18:32:42|
+ Message from NUMBER: 
+d529e941509eb9e9b9cfaeae1fe7ca23
+SENDMSG,P3_GROUP_39,How you doin
+
+|30/10-18:35:32|
+Sent to server: SENDMSG,P3_GROUP_39,How you doin
+LISTSERVERS
+
+|30/10-18:37:47|
+Sent to server: LISTSERVERS
+
+|30/10-18:37:47|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+Instr_2,130.208.243.61,4002
+P3_GROUP_69,130.208.243.61,60522
+P3_GROUP_30,130.208.243.61,39546
+P3_Group_38,194.144.191.50,8120
+Instr_3,130.208.243.61,4003
+P3_GROUP_29,130.208.244.96,59981
+P3_GROUP_39,130.208.243.61,51234
+P3_GROUP_86,89.160.210.17,56852
+
+SENDALL,56 days till christmas!!
+
+|30/10-18:38:23|
+Sent to server: SENDALL,56 days till christmas!!
+
+|30/10-18:39:06|
+ Message from P3_GROUP_15: HÆHÆHÆHÆHÆHÆ
+
+
+|30/10-18:39:41|
+ Message from P3_GROUP_39: hahahaha yay!
+SENDMSG,P3_GROUP_150,stop stealing our msgs!
+
+|30/10-18:41:23|
+Sent to server: SENDMSG,P3_GROUP_150,stop stealing our msgs!
+SENDMSG,P3_GROUP_150,Stop stealing our msgs
+
+|30/10-18:44:59|
+Sent to server: SENDMSG,P3_GROUP_150,Stop stealing our msgs
+
+|30/10-18:45:29|
+ Message from NUMBER: 2091c76f726f21a61b6d2f8b885cc39d
+
+|30/10-18:47:46|
+ Message from NUMBER: 
+
+
+|30/10-18:49:53|
+ Message from NUMBER: 
+e374307dc474b38fb89368677fbabfda
+LISTSERVERS
+
+|30/10-19:14:56|
+Sent to server: LISTSERVERS
+
+|30/10-19:14:56|
+ Instr_1,130.208.243.61,4001
+NUMBER,130.208.243.61,4005
+P3_GROUP_69,130.208.243.61,34128
+P3_GROUP_220,130.208.243.61,55270
+P3_GROUP_15,130.208.243.61,42580
+
+Over and Out
