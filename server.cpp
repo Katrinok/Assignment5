@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <signal.h>
+
 
 // fix SOCK_NONBLOCK for OSX
 #ifndef SOCK_NONBLOCK
@@ -173,6 +175,14 @@ int open_socket(int portno) {
     }
 }
 
+std::string getTimestamp() {
+    char buffer[80];
+    time_t now = time(0);
+    struct tm tstruct = *localtime(&now);
+    strftime(buffer, sizeof(buffer), "\n|%d/%m-%H:%M:%S|", &tstruct);
+    return std::string(buffer);
+}
+
 // Close a client's connection, remove it from the client list, and
 // tidy up select sockets afterwards.
 void closeConnection(int clientSocket, fd_set *openSockets, int *maxfds) {
@@ -235,7 +245,7 @@ void keepAliveFunction(fd_set *openSockets, int *maxfds) {
         for(auto const& pair : connectionsList) {
             Connection *connection = pair.second;
             // Send the keepalive message to each connection. 
-            if(connection->isServer) {
+            if(connection->isServer && (connection->groupID != "")) {
                 // Get the number of messages in the store for this group
                 int messageCount = 0;
                 if (messageStore.find(connection->groupID) != messageStore.end()) {
@@ -833,6 +843,7 @@ int main(int argc, char* argv[]) {
     std::string ourGroupID = "P3_GROUP_20";
     char STX = 0x02;  // Start of command
     char ETX = 0x03;  // End of command
+    signal(SIGPIPE, SIG_IGN);  // Ignore SIGPIPE
 
     myServer myServer("130.208.243.61", this_port, ourGroupID);
     //myServer myServer("127.0.0.1", this_port);

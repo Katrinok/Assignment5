@@ -1,6 +1,15 @@
 # Conputer Networking -- The Botnet saves the world
 
 **Group 20**
+_Included files in the project:_
+- tsampgroup20.cpp
+- chat_client.cpp
+- Makefile
+- readme.md
+- logClient.txt
+- logServer.txt
+- Assignment 5.pdf
+
 
 _Project members:_
 In this project we create a server on skel and try to connect to all servers in the network createing a network of connected servers. We also create a client that can connects to the server we created  and send messages to other clients connected to the server.
@@ -66,6 +75,10 @@ The server commands are commands that the server can use to send messages to oth
 
 5. LISTSERVERS: 
     List all servers connected to the server.
+
+
+Connected Log Messeges:
+38, 99, 69, 17, 22, 100, Number, 15 
 
 
 _Include Credit:_
