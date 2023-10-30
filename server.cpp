@@ -992,7 +992,7 @@ int main(int argc, char* argv[]) {
                         if(commandBytes == 0) {
                             disconnectedServers.push_back(connection);
                             closeConnection(connection->sock, &openSockets, &maxfds);
-                            std::cout << "Client " << connection->groupID << " closed connection: " << connection->sock << std::endl;
+                            std::cout << connection->groupID << " closed connection: " << connection->sock << std::endl;
                         } else if (commandBytes > 0){
                             lastMessage.assign(buffer, commandBytes);
                             try{
