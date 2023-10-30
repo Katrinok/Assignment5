@@ -743,12 +743,13 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // If we were to send message to a server that is is the process of sending
         Connection* connection = isConnected(tokens[1]); // check if connected
         std::cout << "Send message to: "<< tokens[1] << std::endl; // bREYTA prentinu
+        // Take the rest of the tokens in one string as the message
+        std::string message_contents; // Messge contents
+        for(std::vector<std::string>::size_type i = 2; i < tokens.size(); i++) {
+            message_contents += tokens[i];
+        } 
         if(connection) { //if connected or in connectionlist
-            // Take the rest of the tokens in one string as the message
-            std::string message_contents; // Messge contents
-            for(std::vector<std::string>::size_type i = 2; i < tokens.size(); i++) {
-                message_contents += tokens[i];
-            }
+            
             std::string msg = "SEND_MSG," + connection->groupID + "," + server.groupID + "," + message_contents; // Create the message to send
             std::cout << "Message sent was: " << msg << std::endl;
             msg = wrapWithSTXETX(msg); // Wrap the message with STX and ETX
@@ -765,7 +766,7 @@ void clientCommand(int server_socket, fd_set *openSockets, int *maxfds,
             }
         } else { 
             // Here we can store the messege to the messege list have to intertwine with keepalive
-            storeMessage(tokens[1], server.groupID, tokens[2]);
+            storeMessage(tokens[1], server.groupID, message_contents);
             std::cout << "Server is not connected to this server: " << tokens[1] << ". Messages will be stored." << std::endl;
         }
     } else if(tokens[0].compare("GETMSG") == 0 && (tokens.size() == 2)) {
