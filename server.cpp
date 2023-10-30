@@ -633,7 +633,7 @@ void serverCommand(int server_socket, fd_set *openSockets, int *maxfds,
         // Each string in the vector is in the TO_GROUP_ID,FROM_GROUP_ID,messasge. That way we cen put it straight to SEND_MSG
         for(const std::string& msg : messagesForGroup) {
             // "Add SEND_MSG," to each mesage string to get it on the right format
-            std::string formattedMsg = "SEND_MSG" + msg; // Gæti verið crucial
+            std::string formattedMsg = "SEND_MSG" + msg; 
             formattedMsg = wrapWithSTXETX(formattedMsg); // Wrap the send msg function to send it
             ssize_t bytes_sent = send(server_socket, formattedMsg.c_str(), formattedMsg.length(),0); // Send the message to the server
             std::cout << "Message sent was: " << formattedMsg << std::endl;
