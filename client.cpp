@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 
     memset(&hints,   0, sizeof(hints));
 
-    if(getaddrinfo(argv[1], argv[2], &hints, &svr) != 0)
+    if(getaddrinfo(argv[1], argv[2], &hints, &svr) != 0) 
     {
         perror("getaddrinfo failed: ");
         exit(0);

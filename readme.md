@@ -65,7 +65,7 @@ The server commands are commands that the server can use to send messages to oth
     Connect to a server with the specified ip address and port number. 
 
 2. SENDMSG <GroupId> <Message>: 
-    Send a message to the server with the specified group id. If the group id is unknown to the server, the server will store the message
+    Send a message to a server with the specified group id. If the group id is unknown to the server, the server will store the message
 
 3. GETMSG <GroupId>: 
     Get all stored messages for the specified group id from the server. If the group id is unknown to the server, the server will respond with an empty message.
@@ -74,7 +74,7 @@ The server commands are commands that the server can use to send messages to oth
     Send a message to all servers connected to the server.
 
 5. LISTSERVERS: 
-    List all servers connected to the server.
+    Lists all servers connected to the server.
 
 
 
