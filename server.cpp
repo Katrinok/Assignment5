@@ -377,6 +377,7 @@ int connectToServer(const std::string& ip_address, int port, std::string groupID
         if (socketError != 0) {
             perror("Error completing connection");
             close(serverSock);
+
             return -1;
         }
     }
@@ -877,6 +878,7 @@ int main(int argc, char* argv[]) {
             if (upcomingServer.port == -1 || upcomingServer.ip_address.empty()) { // If the port is -1 or no IP address is provided we 
                 std::cout << "Invalid data for server" << upcomingServer.groupID << ". Removing from queue." << std::endl;
                 serverQueue.pop();
+                continue;
             }
             
             
